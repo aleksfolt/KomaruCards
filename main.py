@@ -11,9 +11,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import aiohttp
 import asyncio
 import telebot
-from telebot import asyncio_helper
 
-asyncio_helper.proxy = 'http://proxy.server:3128'
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
 
 
