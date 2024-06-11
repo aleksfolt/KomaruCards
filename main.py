@@ -267,6 +267,32 @@ async def help(message):
     await bot.send_message(message.chat.id, help_text, parse_mode='HTML')
 
 
+@bot.message_handler(commands=['admin_send_files'])
+def handle_send_files(message):
+    try:
+        user_id = message.from_user.id
+        if user_id != 1130692453 and user_id != 1268026433:
+            bot.send_message(message.chat.id, "У вас нет прав на выполнение этой команды!")
+            return
+        filenames = message.text.split()[1:]
+        if len(filenames) == 0:
+            bot.reply_to(message, "Пожалуйста, укажите имена файлов для отправки.")
+            return
+        send_files(message.chat.id, filenames)
+    except Exception as e:
+        bot.reply_to(message, f"Ошибка: {e}")
+        print(f"Ошибка: {e}")
+
+def send_files(chat_id, filenames):
+    try:
+        for filename in filenames:
+            with open(filename, 'rb') as file:
+                bot.send_document(chat_id, file)
+    except Exception as e:
+        bot.send_message(chat_id, f"Не удалось отправить файл {filename}: {e}")
+        print(f"Не удалось отправить файл {filename}: {e}")
+
+
 @bot.message_handler(func=lambda message: True)
 async def handle_text(message):
   try:
