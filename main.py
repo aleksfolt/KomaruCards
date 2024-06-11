@@ -76,9 +76,17 @@ async def user_profile(message):
   keyboard.add(button_1, button_2)
   await bot.send_photo(message.chat.id, photo=open(downloaded_file_path, 'rb'), caption=caption, reply_markup=keyboard)
 
+last_request_time = {}
+
 async def komaru_cards_function(message):
   user_id = str(message.from_user.id)
   user_nickname = message.from_user.first_name
+  if user_id in last_request_time and (current_time - last_request_time[user_id]) < 0.3:
+      bot.reply_to(message, "Пожалуйста, подождите немного перед следующим запросом.")
+      return
+    
+  last_request_time[user_id] = current_time
+  
   data = await load_data_cards()
   user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname})
   user_data['points'] = int(user_data['points'])
