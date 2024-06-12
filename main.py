@@ -12,6 +12,7 @@ import aiohttp
 import asyncio
 import telebot
 from aiocryptopay import AioCryptoPay, Networks
+import aiofiles
 
 crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
@@ -461,6 +462,215 @@ def send_files(chat_id, filenames):
     except Exception as e:
         bot.send_message(chat_id, f"Не удалось отправить файл {filename}: {e}")
         print(f"Не удалось отправить файл {filename}: {e}")
+
+
+async def register_user_and_group_async(message):
+    chat_type = message.chat.type
+    update_data = {}
+
+    if chat_type == 'private':
+        user_info = {
+            "user_id": message.from_user.id,
+            "username": message.from_user.username or "",
+            "first_name": message.from_user.first_name or ""
+        }
+        user_key = str(message.from_user.id)
+        update_data['users'] = {user_key: user_info}
+
+    if chat_type in ['group', 'supergroup']:
+        group_info = {
+            "group_id": message.chat.id,
+            "title": message.chat.title
+        }
+        group_key = str(message.chat.id)
+        update_data['groups'] = {group_key: group_info}
+
+    try:
+        async with aiofiles.open("user_group_data.json", "r") as file:
+            data = await file.read()
+            data = json.loads(data)
+    except FileNotFoundError:
+        data = {"users": {}, "groups": {}}
+
+    updated = False
+    for section, items in update_data.items():
+        for key, info in items.items():
+            if key not in data[section]:
+                data[section][key] = info
+                updated = True
+    if updated:
+        async with aiofiles.open("user_group_data.json", "w") as file:
+            await file.write(json.dumps(data, indent=4))
+
+
+@bot.message_handler(commands=['admin_panel'])
+async def admin_panel(message):
+    if message.chat.type == 'private' and message.from_user.id in [1130692453, 1268026433]:
+        markup = types.InlineKeyboardMarkup()
+        stats_button = types.InlineKeyboardButton(text="Стата пользователей", callback_data="user_stats")
+        issue_premium_button = types.InlineKeyboardButton(text="Выдать премиум", callback_data="issue_premium")
+        reset_stats_button = types.InlineKeyboardButton(text="Обнулить статистику", callback_data="reset_stats")
+        revoke_premium_button = types.InlineKeyboardButton(text="Забрать премиум", callback_data="revoke_premium")
+        group_broadcast_button = types.InlineKeyboardButton(text="Рассылка группы", callback_data="group_broadcast")
+        private_msg_broadcast_button = types.InlineKeyboardButton(text="Рассылка ЛС",
+                                                                  callback_data="private_msg_broadcast")
+        markup.add(stats_button, issue_premium_button, reset_stats_button, revoke_premium_button,
+                   group_broadcast_button, private_msg_broadcast_button)
+        await bot.send_message(message.chat.id, "Админ панель:", reply_markup=markup)
+    else:
+        await bot.send_message(message.chat.id, "У вас нет доступа к этой команде.")
+
+
+user_state = {}
+user_data = {}
+
+
+@bot.message_handler(
+    func=lambda message: message.text and user_state.get(message.from_user.id) in [
+        'awaiting_user_id_for_premium',
+        'awaiting_user_id_for_reset',
+        'awaiting_user_id_for_revoke',
+        'awaiting_broadcast_message_to_groups',
+        'awaiting_broadcast_message_to_users'
+    ]
+)
+async def handle_user_input(message):
+    user_id = message.from_user.id
+    state = user_state[user_id]
+    input_text = message.text.strip()
+
+    if state == 'awaiting_user_id_for_premium':
+        await activate_premium(input_text)
+        await bot.send_message(message.chat.id, "Премиум выдан.")
+        del user_state[user_id]
+
+    elif state == 'awaiting_user_id_for_reset':
+        with open('komaru_user_cards.json', 'r+') as file:
+            data = json.load(file)
+            if input_text in data:
+                del data[input_text]
+                file.seek(0)
+                json.dump(data, file, indent=4)
+                file.truncate()
+        await bot.send_message(message.chat.id, "Статистика пользователя обнулена.")
+        del user_state[user_id]
+
+    elif state == 'awaiting_user_id_for_revoke':
+        with open('premium_users.json', 'r+') as file:
+            data = json.load(file)
+            if input_text in data:
+                del data[input_text]
+                file.seek(0)
+                json.dump(data, file, indent=4)
+                file.truncate()
+        await bot.send_message(message.chat.id, "Премиум статус пользователя забран.")
+        del user_state[user_id]
+
+    elif state == 'awaiting_broadcast_message_to_groups':
+        try:
+            async with aiofiles.open("user_group_data.json", "r") as file:
+                data = await file.read()
+                groups = json.loads(data)['groups']
+                for group_id in groups:
+                    await bot.send_message(group_id, input_text)
+            await bot.send_message(message.chat.id, "Сообщение успешно разослано по группам.")
+        except Exception as e:
+            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
+        del user_state[user_id]
+
+    elif state == 'awaiting_broadcast_message_to_users':
+        try:
+            async with aiofiles.open("user_group_data.json", "r") as file:
+                data = await file.read()
+                users = json.loads(data)['users']
+                for user_id in users:
+                    await bot.send_message(user_id, input_text)
+            await bot.send_message(message.chat.id, "Сообщение успешно разослано пользователям в ЛС.")
+        except Exception as e:
+            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
+        del user_state[user_id]
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('issue_premium'))
+async def issue_premium(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        user_state[call.from_user.id] = 'awaiting_user_id_for_premium'
+        await bot.send_message(call.message.chat.id, "Введите ID пользователя для выдачи премиума:")
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('reset_stats'))
+async def reset_stats(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        user_state[call.from_user.id] = 'awaiting_user_id_for_reset'
+        await bot.send_message(call.message.chat.id, "Введите ID пользователя для обнуления статистики:")
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('revoke_premium'))
+async def revoke_premium(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        user_state[call.from_user.id] = 'awaiting_user_id_for_revoke'
+        await bot.send_message(call.message.chat.id, "Введите ID пользователя для удаления премиума:")
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('user_stats'))
+async def send_user_stats(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        with open('user_data.json', 'rb') as file:
+            await bot.send_document(call.message.chat.id, file)
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'group_broadcast')
+async def initiate_group_broadcast(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        user_state[call.from_user.id] = 'awaiting_broadcast_message_to_groups'
+        await bot.send_message(call.message.chat.id, "Введите сообщение для рассылки по группам:")
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'private_msg_broadcast')
+async def initiate_private_msg_broadcast(call):
+    if call.from_user.id in [1130692453, 1268026433]:
+        user_state[call.from_user.id] = 'awaiting_broadcast_message_to_users'
+        await bot.send_message(call.message.chat.id, "Введите сообщение для рассылки в ЛС:")
+    else:
+        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+
+
+@bot.message_handler(
+    func=lambda message: user_state.get(message.from_user.id) in ['awaiting_broadcast_message_to_groups',
+                                                                  'awaiting_broadcast_message_to_users'])
+async def process_broadcast_message(message):
+    broadcast_message = message.text
+    if user_state[message.from_user.id] == 'awaiting_broadcast_message_to_groups':
+        try:
+            async with aiofiles.open("user_group_data.json", "r") as file:
+                data = await file.read()
+                groups = json.loads(data)['groups']
+                for group_id in groups:
+                    await bot.send_message(group_id, broadcast_message)
+            await bot.send_message(message.chat.id, "Сообщение успешно разослано по группам.")
+        except Exception as e:
+            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
+    elif user_state[message.from_user.id] == 'awaiting_broadcast_message_to_users':
+        try:
+            async with aiofiles.open("user_group_data.json", "r") as file:
+                data = await file.read()
+                users = json.loads(data)['users']
+                for user_id in users:
+                    await bot.send_message(user_id, broadcast_message)
+            await bot.send_message(message.chat.id, "Сообщение успешно разослано пользователям в ЛС.")
+        except Exception as e:
+            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
+    del user_state[message.from_user.id]
 
 
 @bot.message_handler(func=lambda message: True)
