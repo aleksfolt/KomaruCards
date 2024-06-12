@@ -622,7 +622,7 @@ async def revoke_premium(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_stats'))
 async def send_user_stats(call):
     if call.from_user.id in [1130692453, 1268026433]:
-        with open('user_data.json', 'rb') as file:
+        with open('user_group_data.json', 'rb') as file:
             await bot.send_document(call.message.chat.id, file)
     else:
         await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
