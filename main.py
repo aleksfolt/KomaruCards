@@ -106,6 +106,7 @@ async def komaru_cards_function(message):
     user_id = str(message.from_user.id)
     user_nickname = message.from_user.first_name
     current_time = time.time()
+    await register_user_and_group_async(message)
 
     if user_id in last_request_time and (current_time - last_request_time[user_id]) < 0.3:
         await bot.reply_to(message, "Пожалуйста, подождите немного перед следующим запросом.")
