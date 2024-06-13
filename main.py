@@ -99,20 +99,12 @@ async def user_profile(message):
                          reply_markup=keyboard)
 
 
-last_request_time = {}
 
 
 async def komaru_cards_function(message):
     user_id = str(message.from_user.id)
     user_nickname = message.from_user.first_name
-    current_time = time.time()
     await register_user_and_group_async(message)
-
-    if user_id in last_request_time and (current_time - last_request_time[user_id]) < 0.6:
-        await bot.reply_to(message, "Пожалуйста, подождите немного перед следующим запросом.")
-        return
-
-    last_request_time[user_id] = current_time
 
     data = await load_data_cards()
     user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname})
@@ -120,7 +112,7 @@ async def komaru_cards_function(message):
     time_since_last_usage = time.time() - user_data['last_usage']
 
     premium_status, _ = await check_and_update_premium_status(user_id)
-    wait_time = 14400 if not premium_status else 10800 
+    wait_time = 14400 if not premium_status else 10800
 
     if time_since_last_usage < wait_time:
         remaining_time = wait_time - time_since_last_usage
@@ -133,7 +125,7 @@ async def komaru_cards_function(message):
 
     random_number = random.randint(1, 95)
     if premium_status:
-        if 0 <= random_number <= 19:  # Increased chance for premium users
+        if 0 <= random_number <= 19:
             eligible_cats = [cat for cat in cats if cat["rarity"] == "Легендарная"]
         elif 20 <= random_number <= 34:
             eligible_cats = [cat for cat in cats if cat["rarity"] == "Мифическая"]
@@ -152,14 +144,12 @@ async def komaru_cards_function(message):
         chosen_cat = random.choice(eligible_cats)
         photo_data = chosen_cat['photo']
         if chosen_cat['name'] in user_data['cats']:
-            with open(photo_data, 'rb') as photo_file:
-                await bot.send_photo(message.chat.id, photo_file,
-                                     caption=f"Вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! Будут начислены только очки.\nРедкость: {chosen_cat['rarity']}\n+{chosen_cat['points']} очков.\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+            await bot.send_photo(message.chat.id, photo_data,
+                                 caption=f"Вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! Будут начислены только очки.\nРедкость: {chosen_cat['rarity']}\n+{chosen_cat['points']} очков.\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['points'] += int(chosen_cat['points'])
         else:
-            with open(photo_data, 'rb') as photo_file:
-                await bot.send_photo(message.chat.id, photo_file,
-                                     caption=f"Вы осмотрелись вокруг и увидели {chosen_cat['name']}!\nРедкость: {chosen_cat['rarity']}\nОчки: {chosen_cat['points']}\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+            await bot.send_photo(message.chat.id, photo_data,
+                                 caption=f"Вы осмотрелись вокруг и увидели {chosen_cat['name']}!\nРедкость: {chosen_cat['rarity']}\nОчки: {chosen_cat['points']}\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['cats'].append(chosen_cat['name'])
             user_data['points'] += int(chosen_cat['points'])
         user_data['last_usage'] = time.time()
@@ -286,7 +276,6 @@ def registr(s):
     return s
 
 
-@bot.message_handler(commands=['start'])
 async def start(message):
     if message.chat.type == 'private':
         markup = types.InlineKeyboardMarkup()
@@ -307,7 +296,6 @@ async def start(message):
         ), parse_mode='HTML')
 
 
-@bot.message_handler(commands=['help'])
 async def help(message):
     help_text = (
         "<b>Komaru Bot</b> - Ваш помощник в сборе карточек комару\n\n"
@@ -438,33 +426,6 @@ async def check_and_update_premium_status(user_id):
         return False, None
 
 
-@bot.message_handler(commands=['admin_send_files'])
-def handle_send_files(message):
-    try:
-        user_id = message.from_user.id
-        if user_id != 1130692453 and user_id != 1268026433:
-            bot.send_message(message.chat.id, "У вас нет прав на выполнение этой команды!")
-            return
-        filenames = message.text.split()[1:]
-        if len(filenames) == 0:
-            bot.reply_to(message, "Пожалуйста, укажите имена файлов для отправки.")
-            return
-        send_files(message.chat.id, filenames)
-    except Exception as e:
-        bot.reply_to(message, f"Ошибка: {e}")
-        print(f"Ошибка: {e}")
-
-
-def send_files(chat_id, filenames):
-    try:
-        for filename in filenames:
-            with open(filename, 'rb') as file:
-                bot.send_document(chat_id, file)
-    except Exception as e:
-        bot.send_message(chat_id, f"Не удалось отправить файл {filename}: {e}")
-        print(f"Не удалось отправить файл {filename}: {e}")
-
-
 async def register_user_and_group_async(message):
     chat_type = message.chat.type
     update_data = {}
@@ -504,7 +465,6 @@ async def register_user_and_group_async(message):
             await file.write(json.dumps(data, indent=4))
 
 
-@bot.message_handler(commands=['admin_panel'])
 async def admin_panel(message):
     if message.chat.type == 'private' and message.from_user.id in [1130692453, 1268026433]:
         markup = types.InlineKeyboardMarkup()
@@ -674,14 +634,35 @@ async def process_broadcast_message(message):
     del user_state[message.from_user.id]
 
 
+last_request_time = {}
+
+async def last_time_usage(user_id):
+    current_time = time.time()
+    if user_id in last_request_time and (current_time - last_request_time[user_id]) < 2:
+        return False
+    last_request_time[user_id] = current_time
+    return True
+
+
 @bot.message_handler(func=lambda message: True)
 async def handle_text(message):
-    try:
+    try: 
         text = registr(message.text)
-        if text in ["комару", "получить карту", "камар"]:
-            await komaru_cards_function(message)
-        elif text in ["/profile", "профиль", "комару профиль"]:
-            await user_profile(message)
+        if text in ["комару", "получить карту", "камар", "камару"]:
+            if await last_time_usage(message.from_user.id):
+                await komaru_cards_function(message)
+        elif text in ["/profile", "профиль", "комару профиль", "камару профиль"]:
+            if await last_time_usage(message.from_user.id):
+                await user_profile(message)
+        elif text in ["/start", "/start@komarucardsbot"]:
+            if await last_time_usage(message.from_user.id):
+                await start(message)
+        elif text in ["/help", "/help@komarucardsbot"]:
+            if await last_time_usage(message.from_user.id):
+                await help(message)
+        elif text in ['/admin_panel', '/admin_panel@komarucardsbot', 'админ панель']:
+            if await last_time_usage(message.from_user.id):
+                admin_panel(message)
     except Exception as e:
         await bot.send_message(message.chat.id, "Временная ошибка в обработке, повторите позже.")
         await bot.send_message(1130692453,
