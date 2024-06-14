@@ -209,9 +209,8 @@ async def show_cards(call):
             caption = f"{cat['name']}\nРедкость: {cat['rarity']}"
             if 'points' in cat:
                 caption += f"\nОчки: {cat['points']}"
-            with open(photo_data, 'rb') as photo_file:
-                chat_type = call.message.chat.type
-                await bot.send_photo(call.message.chat.id, photo_file, caption=caption)
+            chat_type = call.message.chat.type
+            await bot.send_photo(call.message.chat.id, photo_data, caption=caption)
     else:
         await bot.send_message(call.message.chat.id, f"У вас нет карточек редкости {rarity}")
 
