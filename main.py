@@ -662,7 +662,7 @@ async def handle_text(message):
                 await help(message)
         elif text in ['/admin_panel', '/admin_panel@komarucardsbot', 'админ панель']:
             if await last_time_usage(message.from_user.id):
-                admin_panel(message)
+                await admin_panel(message)
     except Exception as e:
         await bot.send_message(message.chat.id, "Временная ошибка в обработке, повторите позже.")
         await bot.send_message(1130692453,
