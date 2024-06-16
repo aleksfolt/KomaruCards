@@ -13,6 +13,7 @@ import asyncio
 import telebot
 from aiocryptopay import AioCryptoPay, Networks
 import aiofiles
+import emoji
 
 crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
@@ -51,53 +52,75 @@ async def save_data(data):
     except Exception as e:
         print(e)
 
+async def get_titul(card_count):
+    if card_count > 500:
+        return "Мастер карточек"
+    elif card_count > 250:
+        return "Коллекционер"
+    elif card_count > 150:
+        return 'Эксперт карточек'
+    elif card_count > 100:
+        return 'Продвинутый коллекционер'
+    elif card_count > 50:
+        return 'Любитель Комару'
+    elif card_count > 20:
+        return 'Начинающий коллекционер'
+    else:
+        return 'Новичок'
 
 async def user_profile(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name
     last_name = message.from_user.last_name or ""
     data = await load_data_cards()
-    user_data = data.get(str(user_id), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name})
+    user_data = data.get(str(user_id), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
+    card_count = user_data.get('card_count', 0)
+    titul = await get_titul(card_count)
+
     collected_cards = len(user_data['cats'])
     total_cards = len(cats)
 
     premium_status, premium_expiration = await check_and_update_premium_status(user_id)
     premium_message = f"Премиум: активен до {premium_expiration}" if premium_status else "Премиум: не активен"
 
-    user_profile_photos = await bot.get_user_profile_photos(user_id, limit=1)
-    if user_profile_photos.photos:
-        photo = user_profile_photos.photos[0][-1]
-        file_id = photo.file_id
+    try:
+        user_profile_photos = await bot.get_user_profile_photos(user_id, limit=1)
+        if user_profile_photos.photos:
+            photo = user_profile_photos.photos[0][-1]
+            file_id = photo.file_id
 
-        current_datetime = message.date
-        user_folder = os.path.join('path_to_save', f'user_{user_id}', str(current_datetime))
-        os.makedirs(user_folder, exist_ok=True)
+            current_datetime = message.date
+            user_folder = os.path.join('path_to_save', f'user_{user_id}', str(current_datetime))
+            os.makedirs(user_folder, exist_ok=True)
 
-        downloaded_file_path = os.path.join(user_folder, f'{user_id}_profile_pic.jpg')
-        file_info = await bot.get_file(file_id)
-        with open(downloaded_file_path, 'wb') as new_file:
-            new_file.write(await bot.download_file(file_info.file_path))
-    else:
-        downloaded_file_path = 'avatar.jpg'
+            downloaded_file_path = os.path.join(user_folder, f'{user_id}_profile_pic.jpg')
+            file_info = await bot.get_file(file_id)
+            with open(downloaded_file_path, 'wb') as new_file:
+                new_file.write(await bot.download_file(file_info.file_path))
+        else:
+            downloaded_file_path = 'avatar.jpg'
 
-    caption = (
-        f"Привет {first_name} {last_name}!\n\n"
-        f"🏡 Твой профиль:\n"
-        f"🃏 Собрано {collected_cards} из {total_cards} карточек\n"
-        f"💰 Очки: {user_data['points']}\n"
-        f"📝 Ник: {user_data['nickname']}\n"
-        f"🌟 {premium_message}"
-    )
-    unique_number = random.randint(1000, 1000000000000000000000)
-    user_button[user_id] = unique_number
-    keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-    button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{unique_number}')
-    button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{unique_number}')
-    button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{unique_number}')
-    keyboard.add(button_1, button_2, button_3)
-    await bot.send_photo(message.chat.id, photo=open(downloaded_file_path, 'rb'), caption=caption,
-                         reply_markup=keyboard)
-
+        caption = (
+            f"Привет {user_data['nickname']}!\n\n"
+            f"🏡 Твой профиль:\n"
+            f"🃏 Собрано {collected_cards} из {total_cards} карточек\n"
+            f"💰 Очки: {user_data['points']}\n"
+            f"🎖️ Титул: {titul}\n"
+            f"🌟 {premium_message}"
+        )
+        unique_number = random.randint(1000, 1000000000000000000000)
+        user_button[user_id] = unique_number
+        keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+        button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{unique_number}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{unique_number}')
+        button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{unique_number}')
+        keyboard.add(button_1, button_2, button_3)
+        await bot.send_photo(message.chat.id, photo=open(downloaded_file_path, 'rb'), caption=caption, reply_markup=keyboard)
+    except telebot.apihelper.ApiException as e:
+        if "bot was blocked by the user" in str(e):
+            await bot.send_message(message.chat.id, "Пожалуйста, разблокируйте бота для доступа к вашему профилю.")
+        else:
+            await bot.send_message(message.chat.id, "Произошла ошибка при доступе к вашему профилю. Попробуйте позже.")
 
 
 
@@ -107,7 +130,11 @@ async def komaru_cards_function(message):
     await register_user_and_group_async(message)
 
     data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname})
+    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
+    
+    if 'card_count' not in user_data:
+        user_data['card_count'] = 0
+        
     user_data['points'] = int(user_data['points'])
     time_since_last_usage = time.time() - user_data['last_usage']
 
@@ -152,6 +179,7 @@ async def komaru_cards_function(message):
                                  caption=f"Вы осмотрелись вокруг и увидели {chosen_cat['name']}!\nРедкость: {chosen_cat['rarity']}\nОчки: {chosen_cat['points']}\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['cats'].append(chosen_cat['name'])
             user_data['points'] += int(chosen_cat['points'])
+            user_data['card_count'] += 1 
         user_data['last_usage'] = time.time()
         data[user_id] = user_data
         await save_data(data)
@@ -167,7 +195,7 @@ async def show_knock_cards(call):
         await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
         return
     data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname})
+    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
     collected_cards = len(user_data['cats'])
     total_cards = len(cats)
     if user_data['cats']:
@@ -200,7 +228,7 @@ async def show_cards(call):
     user_id = str(call.from_user.id)
     user_nickname = call.from_user.first_name
     data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname})
+    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
     rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
 
     if rarity_cards:
@@ -302,6 +330,7 @@ async def help(message):
         "/start - Начать работу с ботом\n"
         "/help - Получить помощь\n"
         "/profile, 'профиль', 'комару профиль' - Посмотреть свой профиль\n"
+        "'сменить ник <ник>' - Смена ника в профиле."
         "'комару', 'получить карту', 'камар' - Искать котов и собирать карточки\n"
     )
     await bot.send_message(message.chat.id, help_text, parse_mode='HTML')
@@ -324,10 +353,9 @@ async def buy_premium(call):
         else:
             invoice = await create_and_send_invoice(sender_id, is_group=True, message=call.message)
             if not invoice:
-                await bot.send_message(call.message.chat.id,
-                                       "Произошла ошибка при создании инвойса. Пожалуйста, напишите что-то боту в личку.")
+                await bot.answer_callback_query(call.id, "Пожалуйста, напишите боту что-то в личные сообщения.", show_alert=True)
     except Exception as e:
-        await bot.send_message(call.message.chat.id, f"Произошла ошибка: {str(e)}")
+        print(e)
 
 
 async def create_and_send_invoice(sender_id, is_group=False, message=None):
@@ -336,19 +364,25 @@ async def create_and_send_invoice(sender_id, is_group=False, message=None):
         if not invoice:
             response = "Ошибка при создании инвойса. Попробуйте позже."
             if is_group:
-                await bot.send_message(message.chat.id, "Пожалуйста, напишите что-то боту в личку.")
+                pass
             await bot.send_message(sender_id, response)
             return None
 
         markup = types.InlineKeyboardMarkup()
-        print(invoice.bot_invoice_url)
-        print(invoice)
         pay_button = types.InlineKeyboardButton(text="Оплатить", url=invoice.bot_invoice_url)
-        paid_button = types.InlineKeyboardButton(text="Я оплатил",
-                                                 callback_data=f"verify_payment_{sender_id}_{invoice.invoice_id}")
+        paid_button = types.InlineKeyboardButton(text="Я оплатил", callback_data=f"verify_payment_{sender_id}_{invoice.invoice_id}")
         markup.add(pay_button, paid_button)
 
-        response = f"🔓 Что даст тебе Комару премиум?\n\n⌛️ Возможность получать карточки каждые 3 часа вместо 4\n🃏 Повышенная вероятность выпадения легендарных, эпических и мифических карт\n💎 Отображение алмаза в топе карточек\n🔄 Более быстрая обработка твоих сообщений\n🗓️ Срок действия 30 дней\n\nПремиум активируется после подтверждения оплаты. Реквизиты: {invoice.bot_invoice_url}"
+        response = (
+            f"🔓 Что даст тебе Комару премиум?\n\n"
+            f"⌛️ Возможность получать карточки каждые 3 часа вместо 4\n"
+            f"🃏 Повышенная вероятность выпадения легендарных, эпических и мифических карт\n"
+            f"🌐 Возможность использовать смайлики в никнейме"
+            f"💎 Отображение алмаза в топе карточек\n"
+            f"🔄 Более быстрая обработка твоих сообщений\n"
+            f"🗓️ Срок действия 30 дней\n\n"
+            f"Премиум активируется после подтверждения оплаты. Реквизиты: {invoice.bot_invoice_url}"
+        )
         if is_group:
             await bot.send_message(message.chat.id, "Реквизиты для оплаты отправлены в личные сообщения.")
             await bot.send_message(sender_id, response, reply_markup=markup)
@@ -359,7 +393,7 @@ async def create_and_send_invoice(sender_id, is_group=False, message=None):
     except Exception as e:
         error_message = f"Ошибка при создании инвойса: {e}"
         if is_group:
-            await bot.send_message(message.chat.id, "Пожалуйста, напишите что-то боту в личку.")
+            await bot.send_message(message.chat.id, "Пожалуйста, напишите что-то боту в личные сообщения.")
         await bot.send_message(sender_id, error_message)
         return None
 
@@ -632,6 +666,25 @@ async def process_broadcast_message(message):
             await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
     del user_state[message.from_user.id]
 
+async def changeNickname(message):
+    userId = message.from_user.id
+    data = await load_data_cards()
+    first_name = message.from_user.first_name
+    premium_status, _ = await check_and_update_premium_status(str(userId))
+    user_data = data.get(str(userId), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
+    parts = message.text.split('сменить ник', 1)
+    if len(parts) > 1 and parts[1].strip():
+        new_nick = parts[1].strip()
+        if not premium_status:
+            if any(emoji.is_emoji(char) for char in new_nick):
+                await bot.send_message(message.chat.id, "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
+                return
+        user_data['nickname'] = new_nick
+        data[str(userId)] = user_data
+        await save_data(data)
+        await bot.send_message(message.chat.id, f"Ваш никнейм был изменен на {new_nick}.")
+    else:
+        await bot.send_message(message.chat.id, "Никнейм не может быть пустым. Укажите значение после команды.")
 
 last_request_time = {}
 
@@ -662,6 +715,10 @@ async def handle_text(message):
         elif text in ['/admin_panel', '/admin_panel@komarucardsbot', 'админ панель']:
             if await last_time_usage(message.from_user.id):
                 await admin_panel(message)
+        elif text.startswith('сменить ник'):
+            if await last_time_usage(message.from_user.id):
+                await changeNickname(message)
+            
     except Exception as e:
         await bot.send_message(message.chat.id, "Временная ошибка в обработке, повторите позже.")
         await bot.send_message(1130692453,
