@@ -673,12 +673,15 @@ async def changeNickname(message):
     premium_status, _ = await check_and_update_premium_status(str(userId))
     user_data = data.get(str(userId), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
     parts = message.text.split('сменить ник', 1)
+    
     if len(parts) > 1 and parts[1].strip():
         new_nick = parts[1].strip()
-        if not premium_status:
-            if any(emoji.is_emoji(char) for char in new_nick):
-                await bot.send_message(message.chat.id, "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
-                return
+        if len(new_nick) > 64:
+            await bot.send_message(message.chat.id, "Никнейм не может быть длиннее 64 символов.")
+            return
+        if not premium_status and any(emoji.is_emoji(char) for char in new_nick):
+            await bot.send_message(message.chat.id, "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
+            return
         user_data['nickname'] = new_nick
         data[str(userId)] = user_data
         await save_data(data)
