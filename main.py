@@ -333,7 +333,13 @@ async def help(message):
         "'сменить ник &lt;ник&gt;' - Смена ника в профиле.\n"
         "'комару', 'получить карту', 'камар' - Искать котов и собирать карточки\n"
     )
-    await bot.send_message(message.chat.id, help_text, parse_mode='HTML')
+    
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    button1 = InlineKeyboardButton(text="Пользовательское соглашение", url="https://telegra.ph/Polzovatelskoe-soglashenie-06-17-6")
+    button2 = InlineKeyboardButton(text="Наш канал", url="t.me/komaru_updates")
+    keyboard.add(button1, button2)
+    
+    await bot.send_message(message.chat.id, help_text, parse_mode='HTML', reply_markup=keyboard)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('premium_callback'))
