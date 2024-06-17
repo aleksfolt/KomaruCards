@@ -678,7 +678,8 @@ async def changeNickname(message):
     first_name = message.from_user.first_name
     premium_status, _ = await check_and_update_premium_status(str(userId))
     user_data = data.get(str(userId), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
-    parts = message.text.split('сменить ник', 1)
+    text = registr(message.text)
+    parts = text.split('сменить ник', 1)
     
     if len(parts) > 1 and parts[1].strip():
         new_nick = parts[1].strip()
