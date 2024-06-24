@@ -219,7 +219,7 @@ async def show_knock_cards(call):
             await bot.send_message(call.message.chat.id,
                                    "Напишите боту что-то в личные сообщения, чтобы отправить вам карточки!")
     else:
-        await bot.send_message(call.message.chat.id, "Вы пока что не наблюдали за птичками.")
+        await bot.send_message(call.message.chat.id, "Вы пока что не наблюдали за птичками (в память о birdy).")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_'))
@@ -382,7 +382,7 @@ async def create_and_send_invoice(sender_id, is_group=False, message=None):
         response = (
             f"🔓 Что даст тебе Комару премиум?\n\n"
             f"⌛️ Возможность получать карточки каждые 3 часа вместо 4\n"
-            f"🃏 Повышенная вероятность выпадения легендарных, эпических и мифических карт\n"
+            f"🃏 Повышенная вероятность выпадения легендарных и мифических карт\n"
             f"🌐 Возможность использовать смайлики в никнейме"
             f"💎 Отображение алмаза в топе карточек\n"
             f"🔄 Более быстрая обработка твоих сообщений\n"
@@ -504,7 +504,7 @@ async def register_user_and_group_async(message):
             await file.write(json.dumps(data, indent=4))
 
 
-async def admin_panel(message):
+'''async def admin_panel(message):
     if message.chat.type == 'private' and message.from_user.id in [1130692453, 1268026433]:
         markup = types.InlineKeyboardMarkup()
         stats_button = types.InlineKeyboardButton(text="Стата пользователей", callback_data="user_stats")
@@ -670,7 +670,7 @@ async def process_broadcast_message(message):
             await bot.send_message(message.chat.id, "Сообщение успешно разослано пользователям в ЛС.")
         except Exception as e:
             await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
-    del user_state[message.from_user.id]
+    del user_state[message.from_user.id]'''
 
 async def changeNickname(message):
     userId = message.from_user.id
