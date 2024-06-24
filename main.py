@@ -15,7 +15,7 @@ from aiocryptopay import AioCryptoPay, Networks
 import aiofiles
 import emoji
 
-crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1P', network=Networks.MAIN_NET)
+crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
 
 
