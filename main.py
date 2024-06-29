@@ -18,6 +18,9 @@ import emoji
 crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
 
+user_button = {}
+button_ids = {}
+
 
 async def config_func():
     async with aiofiles.open('config.json', 'r', encoding='utf-8') as file:
@@ -32,8 +35,6 @@ if not path.exists("premium_users.json"):
 if not path.exists("komaru_user_cards.json"):
     with open("komaru_user_cards.json", 'w') as f:
         json.dump({}, f)
-
-user_button = {}
 
 responses = [
     "Уберите лапки от чужой кнопки.",
@@ -122,11 +123,13 @@ async def user_profile(message):
             f"💖 Любимая карточка: {favorite_card}\n"
             f"🌟 {premium_message}"
         )
-        user_button[user_id] = user_id
+
+        unique_id = str(random.randint(100000, 999999))
+        user_button[unique_id] = user_id
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-        button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{user_id}')
-        button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{user_id}')
-        button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{user_id}')
+        button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{unique_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{unique_id}')
+        button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{unique_id}')
         keyboard.add(button_1, button_2, button_3)
         await bot.send_photo(message.chat.id, photo=photo_cache, caption=caption, reply_markup=keyboard)
     except telebot.apihelper.ApiException as e:
@@ -274,12 +277,12 @@ async def promo(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_cards'))
 async def show_knock_cards(call):
-    user_id = str(call.from_user.id)
-    user_id_notstr = call.from_user.id
-    user_nickname = call.from_user.first_name
-    if user_button.get(user_id_notstr) != user_id_notstr:
+    unique_id = call.data.split('_')[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
+    user_id = str(call.from_user.id)
+    user_nickname = call.from_user.first_name
     data = await load_data_cards()
     user_data = data.get(user_id,
                          {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
@@ -290,7 +293,7 @@ async def show_knock_cards(call):
         rarities = {cat['rarity'] for cat in cats if cat['name'] in cats_owned_by_user}
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         for rarity in rarities:
-            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=f'show_{rarity}'))
+            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=f'show_{rarity}_{unique_id}'))
         try:
             await bot.send_message(call.from_user.id,
                                    f"У вас собрано {collected_cards} из {total_cards} возможных\nВыберите редкость:",
@@ -313,7 +316,12 @@ async def show_knock_cards(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_'))
 async def show_cards(call):
     try:
-        rarity = call.data[len('show_'):]
+        parts = call.data.split('_')
+        rarity = parts[1]
+        unique_id = parts[-1]
+        if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
+            await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+            return
         user_id = str(call.from_user.id)
         user_nickname = call.from_user.first_name
         data = await load_data_cards()
@@ -324,7 +332,7 @@ async def show_cards(call):
         if rarity_cards:
             first_card_index = 0
             await send_initial_card_with_navigation(call.message.chat.id, user_id, rarity, rarity_cards,
-                                                    first_card_index)
+                                                    first_card_index, unique_id)
         else:
             await bot.send_message(call.message.chat.id, f"У вас нет карточек редкости {rarity}")
     except Exception as e:
@@ -332,7 +340,7 @@ async def show_cards(call):
         await bot.send_message(call.message.chat.id, "Произошла ошибка при отображении карточек.")
 
 
-async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_cards, card_index):
+async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_cards, card_index, unique_id):
     card = rarity_cards[card_index]
     photo_data = card['photo']
     caption = f"{card['name']}\nРедкость: {card['rarity']}"
@@ -340,21 +348,21 @@ async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_car
         caption += f"\nОчки: {card['points']}"
 
     keyboard = types.InlineKeyboardMarkup(row_width=3)
-    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}_{unique_id}')
     keyboard.add(love_button)
     if card_index > 0:
         prev_button = types.InlineKeyboardButton(text="Назад",
-                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}_{unique_id}')
         keyboard.add(prev_button)
     if card_index < len(rarity_cards) - 1:
         next_button = types.InlineKeyboardButton(text="Вперед",
-                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}_{unique_id}')
         keyboard.add(next_button)
 
     await bot.send_photo(chat_id, photo_data, caption=caption, reply_markup=keyboard)
 
 
-async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity_cards, card_index):
+async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity_cards, card_index, unique_id):
     card = rarity_cards[card_index]
     photo_data = card['photo']
     caption = f"{card['name']}\nРедкость: {card['rarity']}"
@@ -362,15 +370,15 @@ async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity
         caption += f"\nОчки: {card['points']}"
 
     keyboard = types.InlineKeyboardMarkup(row_width=3)
-    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}_{unique_id}')
     keyboard.add(love_button)
     if card_index > 0:
         prev_button = types.InlineKeyboardButton(text="Назад",
-                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}_{unique_id}')
         keyboard.add(prev_button)
     if card_index < len(rarity_cards) - 1:
         next_button = types.InlineKeyboardButton(text="Вперед",
-                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}_{unique_id}')
         keyboard.add(next_button)
 
     media = types.InputMediaPhoto(photo_data, caption=caption)
@@ -380,7 +388,10 @@ async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity
 @bot.callback_query_handler(func=lambda call: call.data.startswith('love_'))
 async def handle_love_card(call):
     parts = call.data.split('_')
-    user_id, card_name = parts[1], parts[2]
+    user_id, card_name, unique_id = parts[1], parts[2], parts[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+        return
     data = await load_data_cards()
     user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': '', 'love_card': ''})
     user_data['love_card'] = card_name
@@ -397,6 +408,11 @@ async def navigate_cards(call):
         direction = parts[2]
         new_index = int(parts[3])
         rarity = parts[4]
+        unique_id = parts[-1]
+
+        if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
+            await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+            return
 
         data = await load_data_cards()
         user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': ''})
@@ -406,7 +422,7 @@ async def navigate_cards(call):
 
         if 0 <= new_index < len(rarity_cards):
             await send_card_with_navigation(call.message.chat.id, call.message.message_id, user_id, rarity,
-                                            rarity_cards, new_index)
+                                            rarity_cards, new_index, unique_id)
         else:
             await bot.send_message(call.message.chat.id, "Индекс карточки вне диапазона.")
     except Exception as e:
@@ -416,14 +432,14 @@ async def navigate_cards(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('top_komaru'))
 async def top_komaru(call):
-    user_id = call.from_user.id
-    if user_button.get(user_id) != user_id:
+    unique_id = call.data.split('_')[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
     keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-    button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам", callback_data=f'top_cards_cards_{user_id}')
-    button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point_{user_id}')
-    button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время", callback_data=f'top_cards_all_{user_id}')
+    button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам", callback_data=f'top_cards_cards_{unique_id}')
+    button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
+    button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время", callback_data=f'top_cards_all_{unique_id}')
     keyboard.add(button_1, button_2, button_3)
     await bot.send_message(call.message.chat.id, "Топ 10 пользователей по карточкам. Выберите кнопку:",
                            reply_markup=keyboard)
@@ -433,9 +449,9 @@ async def top_komaru(call):
 async def cards_top_callback(call):
     parts = call.data.split('_')
     choice = parts[2]
-    button_user_id = int(parts[3])
+    unique_id = parts[-1]
 
-    if call.from_user.id != button_user_id:
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
 
@@ -461,10 +477,9 @@ async def cards_top_callback(call):
             message_text += f"\nВаше место: {user_rank} ({data[user_id]['nickname']}: {len(user_data['cats'])} карточек)"
 
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам",
-                                                      callback_data=f'top_cards_point_{button_user_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
         button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время",
-                                                      callback_data=f'top_cards_all_{button_user_id}')
+                                                      callback_data=f'top_cards_all_{unique_id}')
         keyboard.add(button_2, button_3)
 
     elif choice == "point":
@@ -485,9 +500,9 @@ async def cards_top_callback(call):
 
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
         button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам",
-                                                      callback_data=f'top_cards_cards_{button_user_id}')
+                                                      callback_data=f'top_cards_cards_{unique_id}')
         button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время",
-                                                      callback_data=f'top_cards_all_{button_user_id}')
+                                                      callback_data=f'top_cards_all_{unique_id}')
         keyboard.add(button_1, button_3)
 
     elif choice == "all":
@@ -508,9 +523,8 @@ async def cards_top_callback(call):
 
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
         button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам",
-                                                      callback_data=f'top_cards_cards_{button_user_id}')
-        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам",
-                                                      callback_data=f'top_cards_point_{button_user_id}')
+                                                      callback_data=f'top_cards_cards_{unique_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
         keyboard.add(button_1, button_2)
 
     if not message_text:
@@ -569,17 +583,17 @@ async def help(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('premium_callback'))
 async def buy_premium(call):
-    sender_id = call.from_user.id
-    if user_button.get(sender_id) != sender_id:
+    unique_id = call.data.split('_')[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
 
     try:
         if call.message.chat.type == "private":
-            await send_payment_method_selection(sender_id)
+            await send_payment_method_selection(call.from_user.id, unique_id)
         else:
             try:
-                await send_payment_method_selection(sender_id)
+                await send_payment_method_selection(call.from_user.id, unique_id)
                 await bot.send_message(call.message.chat.id, "Выбор способа оплаты отправлен в личные сообщения.")
             except telebot.apihelper.ApiException:
                 await bot.answer_callback_query(call.id, "Пожалуйста, напишите боту что-то в личные сообщения.",
@@ -590,22 +604,21 @@ async def buy_premium(call):
         logging.error(f"Error in buy_premium: {e}")
 
 
-async def send_payment_method_selection(user_id):
+async def send_payment_method_selection(user_id, unique_id):
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    stars_button = types.InlineKeyboardButton(text="Telegram Stars", callback_data=f"pay_stars_{user_id}")
-    crypto_button = types.InlineKeyboardButton(text="CryptoBot", callback_data=f"pay_crypto_{user_id}")
+    stars_button = types.InlineKeyboardButton(text="Telegram Stars", callback_data=f"pay_stars_{unique_id}")
+    crypto_button = types.InlineKeyboardButton(text="CryptoBot", callback_data=f"pay_crypto_{unique_id}")
     keyboard.add(stars_button, crypto_button)
     await bot.send_message(user_id, "Выберите способ оплаты премиума:", reply_markup=keyboard)
 
 
-prices = [LabeledPrice(label="25 Stars",
-                       amount=25)]
+prices = [LabeledPrice(label="25 Stars", amount=25)]
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('pay_stars_'))
 async def pay_with_stars(call):
-    sender_id = call.from_user.id
-    if user_button.get(sender_id) != sender_id:
+    unique_id = call.data.split('_')[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
 
@@ -615,9 +628,9 @@ async def pay_with_stars(call):
         markup.add(pay_button)
 
         await bot.send_invoice(
-            sender_id,
+            call.from_user.id,
             title="Покупка премиума",
-            description="Оплатите премиум для @KomaruCardsBot",
+            description=f"🔓 Комару премиум:\n\n⌛️ Карточки каждые 3 часа\n🃏 Шанс на легендарные и мифические карты\n🌐 Смайлики в никнейме\n💎 Алмаз в топе\n🔄 Быстрая обработка сообщений\n🗓 Действует 30 дней\n\n",
             provider_token=None,
             currency='XTR',
             prices=prices,
@@ -627,7 +640,7 @@ async def pay_with_stars(call):
         )
         await bot.delete_message(call.message.chat.id, call.message.message_id)
     except Exception as e:
-        await bot.send_message(sender_id, f"Произошла ошибка: {str(e)}")
+        await bot.send_message(call.from_user.id, f"Произошла ошибка: {str(e)}")
         logging.error(f"Error in pay_with_stars: {e}")
 
 
@@ -639,33 +652,32 @@ async def checkout(pre_checkout_query):
 @bot.message_handler(content_types=['successful_payment'])
 async def got_payment(message):
     await activate_premium(message.from_user.id, 30)
-    await bot.send_message(message.chat.id, '🌟 Спасибо за покупку Премиума! Наслаждайтесь эксклюзивными преимуществами.')
+    await bot.send_message(message.chat.id,
+                           '🌟 Спасибо за покупку Премиума! Наслаждайтесь эксклюзивными преимуществами.')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('pay_crypto_'))
 async def pay_with_crypto(call):
-    sender_id = call.from_user.id
-    if user_button.get(sender_id) != sender_id:
+    unique_id = call.data.split('_')[-1]
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
 
-    await create_and_send_invoice(sender_id)
+    await create_and_send_invoice(call.from_user.id, unique_id)
 
 
-async def create_and_send_invoice(sender_id, is_group=False, message=None):
+async def create_and_send_invoice(user_id, unique_id):
     try:
         invoice = await crypto.create_invoice(asset='USDT', amount=0.5)
         if not invoice:
             response = "Ошибка при создании инвойса. Попробуйте позже."
-            if is_group:
-                pass
-            await bot.send_message(sender_id, response)
+            await bot.send_message(user_id, response)
             return None
 
         markup = types.InlineKeyboardMarkup()
         pay_button = types.InlineKeyboardButton(text="Оплатить", url=invoice.bot_invoice_url)
         paid_button = types.InlineKeyboardButton(text="Я оплатил",
-                                                 callback_data=f"verify_payment_{sender_id}_{invoice.invoice_id}")
+                                                 callback_data=f"verify_payment_{unique_id}_{invoice.invoice_id}")
         markup.add(pay_button, paid_button)
 
         response = (
@@ -678,11 +690,11 @@ async def create_and_send_invoice(sender_id, is_group=False, message=None):
             f"🗓️ Срок действия 30 дней\n\n"
             f"Премиум активируется после подтверждения оплаты. Реквизиты: {invoice.bot_invoice_url}"
         )
-        await bot.send_message(sender_id, response, reply_markup=markup)
+        await bot.send_message(user_id, response, reply_markup=markup)
         return invoice
     except Exception as e:
         error_message = f"Ошибка при создании инвойса: {e}"
-        await bot.send_message(sender_id, error_message)
+        await bot.send_message(user_id, error_message)
         return None
 
 
@@ -693,20 +705,24 @@ async def verify_payment(call):
         await bot.send_message(call.message.chat.id, "Ошибка в данных платежа.")
         return
 
-    action, context, sender_id, invoice = parts[0], parts[1], parts[2], parts[3]
+    action, context, unique_id, invoice = parts[0], parts[1], parts[2], parts[3]
+
+    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+        return
 
     try:
         print("Invoice ID:", invoice)
         payment_status = await get_invoice_status(invoice)
         if payment_status == 'paid':
-            await activate_premium(sender_id, 30)
-            await bot.send_message(sender_id,
+            await activate_premium(call.from_user.id, 30)
+            await bot.send_message(call.from_user.id,
                                    "🌟 Спасибо за покупку Премиума! Наслаждайтесь эксклюзивными преимуществами.")
             await bot.delete_message(call.message.chat.id, call.message.message_id)
         else:
-            await bot.send_message(sender_id, "Оплата не прошла! Попробуйте еще раз.")
+            await bot.send_message(call.from_user.id, "Оплата не прошла! Попробуйте еще раз.")
     except Exception as e:
-        await bot.send_message(sender_id, f"Произошла ошибка при проверке статуса платежа: {str(e)}")
+        await bot.send_message(call.from_user.id, f"Произошла ошибка при проверке статуса платежа: {str(e)}")
 
 
 async def get_invoice_status(invoice_id):
@@ -719,29 +735,29 @@ async def get_invoice_status(invoice_id):
         return None
 
 
-async def activate_premium(sender_id, days):
+async def activate_premium(user_id, days):
     try:
-        user = await bot.get_chat(sender_id)
+        user = await bot.get_chat(user_id)
         if user is None:
-            print(f"Пользователь с user_id {sender_id} не найден.")
+            print(f"Пользователь с user_id {user_id} не найден.")
             return
 
         premium_duration = timedelta(days=days)
         async with aiofiles.open('premium_users.json', 'r+') as file:
             data = json.loads(await file.read())
-            if str(sender_id) in data:
-                current_expiration = datetime.strptime(data[str(sender_id)], '%Y-%m-%d')
+            if str(user_id) in data:
+                current_expiration = datetime.strptime(data[str(user_id)], '%Y-%m-%d')
                 new_expiration_date = current_expiration + premium_duration
             else:
                 new_expiration_date = datetime.now() + premium_duration
 
-            data[str(sender_id)] = new_expiration_date.strftime('%Y-%m-%d')
+            data[str(user_id)] = new_expiration_date.strftime('%Y-%m-%d')
             await file.seek(0)
             await file.write(json.dumps(data, ensure_ascii=False, indent=4))
             await file.truncate()
     except telebot.apihelper.ApiException as e:
         print(f"Ошибка активации премиум-статуса: {e}")
-        await bot.send_message(sender_id, "Произошла ошибка при активации премиум-статуса. Попробуйте позже.")
+        await bot.send_message(user_id, "Произошла ошибка при активации премиум-статуса. Попробуйте позже.")
 
 
 async def check_and_update_premium_status(user_id):
@@ -801,11 +817,11 @@ async def register_user_and_group_async(message):
 
 
 async def changeNickname(message):
-    userId = message.from_user.id
+    user_id = message.from_user.id
     data = await load_data_cards()
     first_name = message.from_user.first_name
-    premium_status, _ = await check_and_update_premium_status(str(userId))
-    user_data = data.get(str(userId),
+    premium_status, _ = await check_and_update_premium_status(str(user_id))
+    user_data = data.get(str(user_id),
                          {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
     text = registr(message.text)
     parts = text.split('сменить ник', 1)
@@ -820,7 +836,7 @@ async def changeNickname(message):
                                    "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
             return
         user_data['nickname'] = new_nick
-        data[str(userId)] = user_data
+        data[str(user_id)] = user_data
         await save_data(data)
         await bot.send_message(message.chat.id, f"Ваш никнейм был изменен на {new_nick}.")
     else:
