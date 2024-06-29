@@ -1,0 +1,9 @@
+{
+    "komaru1000": {
+        "until": 1720126800,
+        "users": [],
+        "activation_limit": 9999,
+        "action": "give_prem 5",
+        "activation_counts": 1
+    }
+}
