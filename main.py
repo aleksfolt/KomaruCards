@@ -7,7 +7,7 @@ from os import path
 from datetime import datetime, timedelta
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice
 import aiohttp
 import asyncio
 import telebot
@@ -15,13 +15,13 @@ from aiocryptopay import AioCryptoPay, Networks
 import aiofiles
 import emoji
 
-crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1', network=Networks.MAIN_NET)
+crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
 bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
 
 
 async def config_func():
-    with open('config.json', 'r', encoding='utf-8') as file:
-        data = json.load(file)
+    async with aiofiles.open('config.json', 'r', encoding='utf-8') as file:
+        data = json.loads(await file.read())
     return data
 
 
@@ -35,11 +35,19 @@ if not path.exists("komaru_user_cards.json"):
 
 user_button = {}
 
+responses = [
+    "Уберите лапки от чужой кнопки.",
+    "Лапки вверх, вы арестованы!",
+    "Ваши лапки не для этой кнопки.",
+    "Лапки прочь от этой кнопки!",
+    "Ваши лапки здесь лишние."
+]
+
 
 async def load_data_cards():
     try:
-        with open("komaru_user_cards.json", 'r') as f:
-            return json.load(f)
+        async with aiofiles.open("komaru_user_cards.json", 'r') as f:
+            return json.loads(await f.read())
     except Exception as e:
         print(e)
         return {}
@@ -47,12 +55,17 @@ async def load_data_cards():
 
 async def save_data(data):
     try:
-        with open("komaru_user_cards.json", 'w') as f:
-            json.dump(data, f)
+        async with aiofiles.open("komaru_user_cards.json", 'w') as f:
+            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
     except Exception as e:
         print(e)
 
-async def get_titul(card_count):
+
+async def get_titul(card_count, user_id):
+    if user_id in [1130692453, 1268026433]:
+        return "Создатель"
+    if user_id in [1497833411, 6679727618, 5872877426]:
+        return "Лох"
     if card_count > 500:
         return "Мастер карточек"
     elif card_count > 250:
@@ -68,14 +81,17 @@ async def get_titul(card_count):
     else:
         return 'Новичок'
 
+
 async def user_profile(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name
     last_name = message.from_user.last_name or ""
     data = await load_data_cards()
-    user_data = data.get(str(user_id), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
+    user_data = data.get(str(user_id),
+                         {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
     card_count = user_data.get('card_count', 0)
-    titul = await get_titul(card_count)
+    favorite_card = user_data.get('love_card', 'Не выбрана')
+    titul = await get_titul(card_count, user_id)
 
     collected_cards = len(user_data['cats'])
     total_cards = len(cats)
@@ -89,16 +105,13 @@ async def user_profile(message):
             photo = user_profile_photos.photos[0][-1]
             file_id = photo.file_id
 
-            current_datetime = message.date
-            user_folder = os.path.join('path_to_save', f'user_{user_id}', str(current_datetime))
-            os.makedirs(user_folder, exist_ok=True)
-
-            downloaded_file_path = os.path.join(user_folder, f'{user_id}_profile_pic.jpg')
             file_info = await bot.get_file(file_id)
-            with open(downloaded_file_path, 'wb') as new_file:
-                new_file.write(await bot.download_file(file_info.file_path))
+            downloaded_file = await bot.download_file(file_info.file_path)
+
+            photo_cache = downloaded_file
         else:
-            downloaded_file_path = 'avatar.jpg'
+            with open('avatar.jpg', 'rb') as f:
+                photo_cache = f.read()
 
         caption = (
             f"Привет {user_data['nickname']}!\n\n"
@@ -106,22 +119,21 @@ async def user_profile(message):
             f"🃏 Собрано {collected_cards} из {total_cards} карточек\n"
             f"💰 Очки: {user_data['points']}\n"
             f"🎖️ Титул: {titul}\n"
+            f"💖 Любимая карточка: {favorite_card}\n"
             f"🌟 {premium_message}"
         )
-        unique_number = random.randint(1000, 1000000000000000000000)
-        user_button[user_id] = unique_number
+        user_button[user_id] = user_id
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-        button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{unique_number}')
-        button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{unique_number}')
-        button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{unique_number}')
+        button_1 = telebot.types.InlineKeyboardButton(text="Мои карточки", callback_data=f'show_cards_{user_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ карточек", callback_data=f'top_komaru_{user_id}')
+        button_3 = telebot.types.InlineKeyboardButton(text="Премиум", callback_data=f'premium_callback_{user_id}')
         keyboard.add(button_1, button_2, button_3)
-        await bot.send_photo(message.chat.id, photo=open(downloaded_file_path, 'rb'), caption=caption, reply_markup=keyboard)
+        await bot.send_photo(message.chat.id, photo=photo_cache, caption=caption, reply_markup=keyboard)
     except telebot.apihelper.ApiException as e:
         if "bot was blocked by the user" in str(e):
             await bot.send_message(message.chat.id, "Пожалуйста, разблокируйте бота для доступа к вашему профилю.")
         else:
             await bot.send_message(message.chat.id, "Произошла ошибка при доступе к вашему профилю. Попробуйте позже.")
-
 
 
 async def komaru_cards_function(message):
@@ -130,11 +142,12 @@ async def komaru_cards_function(message):
     await register_user_and_group_async(message)
 
     data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
-    
+    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0,
+                                   'all_points': 0})
+
     if 'card_count' not in user_data:
         user_data['card_count'] = 0
-        
+
     user_data['points'] = int(user_data['points'])
     time_since_last_usage = time.time() - user_data['last_usage']
 
@@ -174,15 +187,89 @@ async def komaru_cards_function(message):
             await bot.send_photo(message.chat.id, photo_data,
                                  caption=f"Вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! Будут начислены только очки.\nРедкость: {chosen_cat['rarity']}\n+{chosen_cat['points']} очков.\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['points'] += int(chosen_cat['points'])
+            user_data['all_points'] += int(chosen_cat['points'])
         else:
             await bot.send_photo(message.chat.id, photo_data,
                                  caption=f"Вы осмотрелись вокруг и увидели {chosen_cat['name']}!\nРедкость: {chosen_cat['rarity']}\nОчки: {chosen_cat['points']}\n\nВсего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['cats'].append(chosen_cat['name'])
             user_data['points'] += int(chosen_cat['points'])
-            user_data['card_count'] += 1 
+            user_data['all_points'] += int(chosen_cat['points'])
+            user_data['card_count'] += 1
         user_data['last_usage'] = time.time()
         data[user_id] = user_data
         await save_data(data)
+
+
+async def promo(message):
+    try:
+        promo_code = message.text.split()[1]
+        async with aiofiles.open("promo.json", 'r') as f:
+            promo_data = json.loads(await f.read())
+
+        data = promo_data.get(promo_code)
+        if not data:
+            return
+
+        user_id = message.from_user.id
+        current_time = time.time()
+
+        if current_time > data['until']:
+            markup = InlineKeyboardMarkup()
+            subscribe_button = InlineKeyboardButton("Подписаться", url="https://t.me/komaru_updates")
+            markup.add(subscribe_button)
+            await bot.send_message(message.chat.id,
+                                   "Срок действия промокода истек. Подпишитесь на канал, чтобы не пропускать новые промо!",
+                                   reply_markup=markup)
+            return
+
+        if data['activation_limit'] != -1 and data['activation_counts'] >= data['activation_limit']:
+            markup = InlineKeyboardMarkup()
+            subscribe_button = InlineKeyboardButton("Подписаться", url="https://t.me/komaru_updates")
+            markup.add(subscribe_button)
+            await bot.send_message(message.chat.id,
+                                   "Этот промокод уже был активирован максимальное количество раз. Подпишитесь на канал, чтобы не пропускать новые промо!",
+                                   reply_markup=markup)
+            return
+
+        try:
+            chat_member = await bot.get_chat_member('@komaru_updates', user_id)
+            if chat_member.status not in ['member', 'administrator', 'creator']:
+                markup = InlineKeyboardMarkup()
+                subscribe_button = InlineKeyboardButton("Подписаться", url="https://t.me/komaru_updates")
+                markup.add(subscribe_button)
+                await bot.send_message(message.chat.id,
+                                       "Подпишитесь на канал, чтобы получить подарок.",
+                                       reply_markup=markup)
+                return
+        except telebot.apihelper.ApiException as e:
+            await bot.send_message(1130692453, f"Произошла ошибка {e}")
+            await bot.send_message(1268026433, f"Произошла ошибка {e}")
+
+        if user_id in data['users']:
+            markup = InlineKeyboardMarkup()
+            subscribe_button = InlineKeyboardButton("Подписаться", url="https://t.me/komaru_updates")
+            markup.add(subscribe_button)
+            await bot.send_message(message.chat.id,
+                                   "Вы уже активировали этот промокод. Подпишитесь на канал, чтобы не пропускать новые промо!",
+                                   reply_markup=markup)
+            return
+
+        action = data['action'].split()
+        if action[0] == 'give_prem':
+            await activate_premium(user_id, int(action[1]))
+            data['users'].append(user_id)
+            data["activation_counts"] += 1
+
+            async with aiofiles.open("promo.json", 'w') as f:
+                await f.write(json.dumps(promo_data, ensure_ascii=False, indent=4))
+
+            await bot.send_message(message.chat.id, "Промокод успешно активирован!\n\nВы получили премиум на 5 дней!")
+        else:
+            await bot.send_message(message.chat.id, "Неизвестное действие промокода.")
+    except Exception as e:
+        logging.error(f"Error processing promo code: {e}")
+        await bot.send_message(1130692453, f"Произошла ошибка {e}")
+        await bot.send_message(1268026433, f"Произошла ошибка {e}")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_cards'))
@@ -190,12 +277,12 @@ async def show_knock_cards(call):
     user_id = str(call.from_user.id)
     user_id_notstr = call.from_user.id
     user_nickname = call.from_user.first_name
-    unique_number = int(call.data.split('_')[-1])
-    if user_button.get(user_id_notstr) != unique_number:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+    if user_button.get(user_id_notstr) != user_id_notstr:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
     data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
+    user_data = data.get(user_id,
+                         {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
     collected_cards = len(user_data['cats'])
     total_cards = len(cats)
     if user_data['cats']:
@@ -219,81 +306,218 @@ async def show_knock_cards(call):
             await bot.send_message(call.message.chat.id,
                                    "Напишите боту что-то в личные сообщения, чтобы отправить вам карточки!")
     else:
-        await bot.send_message(call.message.chat.id, "Вы пока что не наблюдали за птичками (в память о birdy).")
+        await bot.answer_callback_query(call.id, "Вы пока что не наблюдали за птичками (в память о birdy).",
+                                        show_alert=True)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_'))
 async def show_cards(call):
-    rarity = call.data[len('show_'):]
-    user_id = str(call.from_user.id)
-    user_nickname = call.from_user.first_name
-    data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
-    rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
+    try:
+        rarity = call.data[len('show_'):]
+        user_id = str(call.from_user.id)
+        user_nickname = call.from_user.first_name
+        data = await load_data_cards()
+        user_data = data.get(user_id,
+                             {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
+        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
 
-    if rarity_cards:
-        for cat in rarity_cards:
-            photo_data = cat['photo']
-            caption = f"{cat['name']}\nРедкость: {cat['rarity']}"
-            if 'points' in cat:
-                caption += f"\nОчки: {cat['points']}"
-            chat_type = call.message.chat.type
-            await bot.send_photo(call.message.chat.id, photo_data, caption=caption)
-    else:
-        await bot.send_message(call.message.chat.id, f"У вас нет карточек редкости {rarity}")
+        if rarity_cards:
+            first_card_index = 0
+            await send_initial_card_with_navigation(call.message.chat.id, user_id, rarity, rarity_cards,
+                                                    first_card_index)
+        else:
+            await bot.send_message(call.message.chat.id, f"У вас нет карточек редкости {rarity}")
+    except Exception as e:
+        logging.error(f"Error in show_cards: {e}")
+        await bot.send_message(call.message.chat.id, "Произошла ошибка при отображении карточек.")
+
+
+async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_cards, card_index):
+    card = rarity_cards[card_index]
+    photo_data = card['photo']
+    caption = f"{card['name']}\nРедкость: {card['rarity']}"
+    if 'points' in card:
+        caption += f"\nОчки: {card['points']}"
+
+    keyboard = types.InlineKeyboardMarkup(row_width=3)
+    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+    keyboard.add(love_button)
+    if card_index > 0:
+        prev_button = types.InlineKeyboardButton(text="Назад",
+                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+        keyboard.add(prev_button)
+    if card_index < len(rarity_cards) - 1:
+        next_button = types.InlineKeyboardButton(text="Вперед",
+                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+        keyboard.add(next_button)
+
+    await bot.send_photo(chat_id, photo_data, caption=caption, reply_markup=keyboard)
+
+
+async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity_cards, card_index):
+    card = rarity_cards[card_index]
+    photo_data = card['photo']
+    caption = f"{card['name']}\nРедкость: {card['rarity']}"
+    if 'points' in card:
+        caption += f"\nОчки: {card['points']}"
+
+    keyboard = types.InlineKeyboardMarkup(row_width=3)
+    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+    keyboard.add(love_button)
+    if card_index > 0:
+        prev_button = types.InlineKeyboardButton(text="Назад",
+                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+        keyboard.add(prev_button)
+    if card_index < len(rarity_cards) - 1:
+        next_button = types.InlineKeyboardButton(text="Вперед",
+                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+        keyboard.add(next_button)
+
+    media = types.InputMediaPhoto(photo_data, caption=caption)
+    await bot.edit_message_media(media, chat_id=chat_id, message_id=message_id, reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('love_'))
+async def handle_love_card(call):
+    parts = call.data.split('_')
+    user_id, card_name = parts[1], parts[2]
+    data = await load_data_cards()
+    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': '', 'love_card': ''})
+    user_data['love_card'] = card_name
+    data[user_id] = user_data
+    await save_data(data)
+    await bot.answer_callback_query(call.id, f"Карточка '{card_name}' теперь ваша любимая!")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('navigate_'))
+async def navigate_cards(call):
+    try:
+        parts = call.data.split('_')
+        user_id = parts[1]
+        direction = parts[2]
+        new_index = int(parts[3])
+        rarity = parts[4]
+
+        data = await load_data_cards()
+        user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': ''})
+        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
+
+        logging.info(f"Navigating to card {new_index} of {len(rarity_cards) - 1}")
+
+        if 0 <= new_index < len(rarity_cards):
+            await send_card_with_navigation(call.message.chat.id, call.message.message_id, user_id, rarity,
+                                            rarity_cards, new_index)
+        else:
+            await bot.send_message(call.message.chat.id, "Индекс карточки вне диапазона.")
+    except Exception as e:
+        logging.error(f"Error in navigate_cards: {e}")
+        await bot.send_message(call.message.chat.id, "Произошла ошибка при навигации по карточкам.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('top_komaru'))
 async def top_komaru(call):
     user_id = call.from_user.id
-    unique_number = int(call.data.split('_')[-1])
-    if user_button.get(user_id) != unique_number:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+    if user_button.get(user_id) != user_id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
     keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-    button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам", callback_data=f'top_cards_cards')
-    button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point')
-    keyboard.add(button_1, button_2)
+    button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам", callback_data=f'top_cards_cards_{user_id}')
+    button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам", callback_data=f'top_cards_point_{user_id}')
+    button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время", callback_data=f'top_cards_all_{user_id}')
+    keyboard.add(button_1, button_2, button_3)
     await bot.send_message(call.message.chat.id, "Топ 10 пользователей по карточкам. Выберите кнопку:",
                            reply_markup=keyboard)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('top_cards_'))
 async def cards_top_callback(call):
-    choice = call.data.split('_')[2]
+    parts = call.data.split('_')
+    choice = parts[2]
+    button_user_id = int(parts[3])
+
+    if call.from_user.id != button_user_id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+        return
+
     data = await load_data_cards()
     user_id = str(call.from_user.id)
+    user_data = data.get(user_id, {'cats': [], 'points': 0, 'all_points': 0})
     message_text = ""
 
     if choice == "cards":
         sorted_data = sorted(data.items(), key=lambda x: len(x[1].get('cats', [])), reverse=True)
+        user_rank = next((i for i, item in enumerate(sorted_data, 1) if item[0] == user_id), None)
         top_10 = sorted_data[:10]
 
         message_text = "Топ-10 пользователей по количеству собранных карточек:\n\n"
-        for i, (user_id, user_data) in enumerate(top_10, 1):
-            nickname = user_data.get('nickname', 'Unknown')
-            num_cards = len(user_data.get('cats', []))
-            premium_status, _ = await check_and_update_premium_status(user_id)
+        for i, (uid, u_data) in enumerate(top_10, 1):
+            nickname = u_data.get('nickname', 'Unknown')
+            num_cards = len(u_data.get('cats', []))
+            premium_status, _ = await check_and_update_premium_status(uid)
             premium_icon = "💎" if premium_status else ""
             message_text += f"{i}. {premium_icon} {nickname}: {num_cards} карточек\n"
 
+        if user_rank and user_rank > 10:
+            message_text += f"\nВаше место: {user_rank} ({data[user_id]['nickname']}: {len(user_data['cats'])} карточек)"
+
+        keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам",
+                                                      callback_data=f'top_cards_point_{button_user_id}')
+        button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время",
+                                                      callback_data=f'top_cards_all_{button_user_id}')
+        keyboard.add(button_2, button_3)
+
     elif choice == "point":
         sorted_data_points = sorted(data.items(), key=lambda x: x[1].get('points', 0), reverse=True)
+        user_rank_points = next((j for j, item in enumerate(sorted_data_points, 1) if item[0] == user_id), None)
         top_10 = sorted_data_points[:10]
 
         message_text = "Топ-10 пользователей по количеству набранных очков:\n\n"
-        for j, (user_id, user_data) in enumerate(top_10, 1):
-            nickname_2 = user_data.get('nickname', 'Unknown')
-            points = user_data.get('points', 0)
-            premium_status, _ = await check_and_update_premium_status(user_id)
+        for j, (uid, u_data) in enumerate(top_10, 1):
+            nickname_2 = u_data.get('nickname', 'Unknown')
+            points = u_data.get('points', 0)
+            premium_status, _ = await check_and_update_premium_status(uid)
             premium_icon = "💎" if premium_status else ""
             message_text += f"{j}. {premium_icon} {nickname_2}: {points} очков\n"
+
+        if user_rank_points and user_rank_points > 10:
+            message_text += f"\nВаше место: {user_rank_points} ({data[user_id]['nickname']}: {user_data['points']} очков)"
+
+        keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+        button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам",
+                                                      callback_data=f'top_cards_cards_{button_user_id}')
+        button_3 = telebot.types.InlineKeyboardButton(text="Топ за все время",
+                                                      callback_data=f'top_cards_all_{button_user_id}')
+        keyboard.add(button_1, button_3)
+
+    elif choice == "all":
+        sorted_data = sorted(data.items(), key=lambda x: x[1].get('all_points', 0), reverse=True)
+        user_rank_all = next((index for index, item in enumerate(sorted_data, 1) if item[0] == user_id), None)
+        top_10 = sorted_data[:10]
+
+        message_text = "Топ-10 пользователей по всем временам (очки):\n\n"
+        for index, (uid, u_data) in enumerate(top_10, 1):
+            nickname = u_data.get('nickname', 'Unknown')
+            premium_status, _ = await check_and_update_premium_status(uid)
+            premium_icon = "💎" if premium_status else ""
+            total_points = u_data.get('all_points', 0)
+            message_text += f"{index}. {premium_icon} {nickname}: {total_points} очков\n"
+
+        if user_rank_all and user_rank_all > 10:
+            message_text += f"\nВаше место: {user_rank_all} ({data[user_id]['nickname']}: {user_data['all_points']} очков)"
+
+        keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+        button_1 = telebot.types.InlineKeyboardButton(text="Топ по карточкам",
+                                                      callback_data=f'top_cards_cards_{button_user_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="Топ по очкам",
+                                                      callback_data=f'top_cards_point_{button_user_id}')
+        keyboard.add(button_1, button_2)
 
     if not message_text:
         message_text = "Не удалось получить данные. Попробуйте позже."
 
-    await bot.delete_message(call.message.chat.id, call.message.message_id)
-    await bot.send_message(call.message.chat.id, message_text)
+    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=message_text,
+                                reply_markup=keyboard)
 
 
 def registr(s):
@@ -333,35 +557,99 @@ async def help(message):
         "'сменить ник &lt;ник&gt;' - Смена ника в профиле.\n"
         "'комару', 'получить карту', 'камар' - Искать котов и собирать карточки\n"
     )
-    
+
     keyboard = InlineKeyboardMarkup(row_width=1)
-    button1 = InlineKeyboardButton(text="Пользовательское соглашение", url="https://telegra.ph/Polzovatelskoe-soglashenie-06-17-6")
+    button1 = InlineKeyboardButton(text="Пользовательское соглашение",
+                                   url="https://telegra.ph/Polzovatelskoe-soglashenie-06-17-6")
     button2 = InlineKeyboardButton(text="Наш канал", url="t.me/komaru_updates")
     keyboard.add(button1, button2)
-    
+
     await bot.send_message(message.chat.id, help_text, parse_mode='HTML', reply_markup=keyboard)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('premium_callback'))
 async def buy_premium(call):
     sender_id = call.from_user.id
-    unique_number = int(call.data.split('_')[-1])
-
-    if user_button.get(sender_id) != unique_number:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
+    if user_button.get(sender_id) != sender_id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
 
     try:
         if call.message.chat.type == "private":
-            invoice = await create_and_send_invoice(sender_id)
-            if not invoice:
-                await bot.send_message(sender_id, "Не удалось создать инвойс.")
+            await send_payment_method_selection(sender_id)
         else:
-            invoice = await create_and_send_invoice(sender_id, is_group=True, message=call.message)
-            if not invoice:
-                await bot.answer_callback_query(call.id, "Пожалуйста, напишите боту что-то в личные сообщения.", show_alert=True)
+            try:
+                await send_payment_method_selection(sender_id)
+                await bot.send_message(call.message.chat.id, "Выбор способа оплаты отправлен в личные сообщения.")
+            except telebot.apihelper.ApiException:
+                await bot.answer_callback_query(call.id, "Пожалуйста, напишите боту что-то в личные сообщения.",
+                                                show_alert=True)
     except Exception as e:
-        print(e)
+        await bot.answer_callback_query(call.id, "Пожалуйста, напишите боту что-то в личные сообщения.",
+                                        show_alert=True)
+        logging.error(f"Error in buy_premium: {e}")
+
+
+async def send_payment_method_selection(user_id):
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    stars_button = types.InlineKeyboardButton(text="Telegram Stars", callback_data=f"pay_stars_{user_id}")
+    crypto_button = types.InlineKeyboardButton(text="CryptoBot", callback_data=f"pay_crypto_{user_id}")
+    keyboard.add(stars_button, crypto_button)
+    await bot.send_message(user_id, "Выберите способ оплаты премиума:", reply_markup=keyboard)
+
+
+prices = [LabeledPrice(label="25 Stars",
+                       amount=25)]
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('pay_stars_'))
+async def pay_with_stars(call):
+    sender_id = call.from_user.id
+    if user_button.get(sender_id) != sender_id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+        return
+
+    try:
+        markup = InlineKeyboardMarkup()
+        pay_button = InlineKeyboardButton(text="Оплатить", pay=True)
+        markup.add(pay_button)
+
+        await bot.send_invoice(
+            sender_id,
+            title="Покупка премиума",
+            description="Оплатите премиум для @KomaruCardsBot",
+            provider_token=None,
+            currency='XTR',
+            prices=prices,
+            start_parameter='purchase-stars',
+            invoice_payload='stars-invoice',
+            reply_markup=markup
+        )
+        await bot.delete_message(call.message.chat.id, call.message.message_id)
+    except Exception as e:
+        await bot.send_message(sender_id, f"Произошла ошибка: {str(e)}")
+        logging.error(f"Error in pay_with_stars: {e}")
+
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+async def checkout(pre_checkout_query):
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+
+@bot.message_handler(content_types=['successful_payment'])
+async def got_payment(message):
+    await activate_premium(message.from_user.id, 30)
+    await bot.send_message(message.chat.id, '🌟 Спасибо за покупку Премиума! Наслаждайтесь эксклюзивными преимуществами.')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('pay_crypto_'))
+async def pay_with_crypto(call):
+    sender_id = call.from_user.id
+    if user_button.get(sender_id) != sender_id:
+        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
+        return
+
+    await create_and_send_invoice(sender_id)
 
 
 async def create_and_send_invoice(sender_id, is_group=False, message=None):
@@ -376,30 +664,24 @@ async def create_and_send_invoice(sender_id, is_group=False, message=None):
 
         markup = types.InlineKeyboardMarkup()
         pay_button = types.InlineKeyboardButton(text="Оплатить", url=invoice.bot_invoice_url)
-        paid_button = types.InlineKeyboardButton(text="Я оплатил", callback_data=f"verify_payment_{sender_id}_{invoice.invoice_id}")
+        paid_button = types.InlineKeyboardButton(text="Я оплатил",
+                                                 callback_data=f"verify_payment_{sender_id}_{invoice.invoice_id}")
         markup.add(pay_button, paid_button)
 
         response = (
             f"🔓 Что даст тебе Комару премиум?\n\n"
             f"⌛️ Возможность получать карточки каждые 3 часа вместо 4\n"
             f"🃏 Повышенная вероятность выпадения легендарных и мифических карт\n"
-            f"🌐 Возможность использовать смайлики в никнейме"
+            f"🌐 Возможность использовать смайлики в никнейме\n"
             f"💎 Отображение алмаза в топе карточек\n"
             f"🔄 Более быстрая обработка твоих сообщений\n"
             f"🗓️ Срок действия 30 дней\n\n"
             f"Премиум активируется после подтверждения оплаты. Реквизиты: {invoice.bot_invoice_url}"
         )
-        if is_group:
-            await bot.send_message(message.chat.id, "Реквизиты для оплаты отправлены в личные сообщения.")
-            await bot.send_message(sender_id, response, reply_markup=markup)
-        else:
-            await bot.send_message(sender_id, response, reply_markup=markup)
-
+        await bot.send_message(sender_id, response, reply_markup=markup)
         return invoice
     except Exception as e:
         error_message = f"Ошибка при создании инвойса: {e}"
-        if is_group:
-            await bot.send_message(message.chat.id, "Пожалуйста, напишите что-то боту в личные сообщения.")
         await bot.send_message(sender_id, error_message)
         return None
 
@@ -417,7 +699,7 @@ async def verify_payment(call):
         print("Invoice ID:", invoice)
         payment_status = await get_invoice_status(invoice)
         if payment_status == 'paid':
-            await activate_premium(sender_id)
+            await activate_premium(sender_id, 30)
             await bot.send_message(sender_id,
                                    "🌟 Спасибо за покупку Премиума! Наслаждайтесь эксклюзивными преимуществами.")
             await bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -437,20 +719,34 @@ async def get_invoice_status(invoice_id):
         return None
 
 
-async def activate_premium(sender_id):
-    premium_duration = timedelta(days=30)
-    expiration_date = datetime.now() + premium_duration
-    with open('premium_users.json', 'r+') as file:
-        data = json.load(file)
-        data[str(sender_id)] = expiration_date.strftime('%Y-%m-%d')
-        file.seek(0)
-        json.dump(data, file)
-        file.truncate()
+async def activate_premium(sender_id, days):
+    try:
+        user = await bot.get_chat(sender_id)
+        if user is None:
+            print(f"Пользователь с user_id {sender_id} не найден.")
+            return
+
+        premium_duration = timedelta(days=days)
+        async with aiofiles.open('premium_users.json', 'r+') as file:
+            data = json.loads(await file.read())
+            if str(sender_id) in data:
+                current_expiration = datetime.strptime(data[str(sender_id)], '%Y-%m-%d')
+                new_expiration_date = current_expiration + premium_duration
+            else:
+                new_expiration_date = datetime.now() + premium_duration
+
+            data[str(sender_id)] = new_expiration_date.strftime('%Y-%m-%d')
+            await file.seek(0)
+            await file.write(json.dumps(data, ensure_ascii=False, indent=4))
+            await file.truncate()
+    except telebot.apihelper.ApiException as e:
+        print(f"Ошибка активации премиум-статуса: {e}")
+        await bot.send_message(sender_id, "Произошла ошибка при активации премиум-статуса. Попробуйте позже.")
 
 
 async def check_and_update_premium_status(user_id):
-    with open('premium_users.json', 'r') as file:
-        premium_users = json.load(file)
+    async with aiofiles.open('premium_users.json', 'r') as file:
+        premium_users = json.loads(await file.read())
 
     if str(user_id) in premium_users:
         expiration_date = datetime.strptime(premium_users[str(user_id)], '%Y-%m-%d')
@@ -458,8 +754,8 @@ async def check_and_update_premium_status(user_id):
             return True, expiration_date.strftime('%Y-%m-%d')
         else:
             del premium_users[str(user_id)]
-            with open('premium_users.json', 'w') as file:
-                json.dump(premium_users, file)
+            async with aiofiles.open('premium_users.json', 'w') as file:
+                await file.write(json.dumps(premium_users, ensure_ascii=False, indent=4))
             return False, None
     else:
         return False, None
@@ -504,190 +800,24 @@ async def register_user_and_group_async(message):
             await file.write(json.dumps(data, indent=4))
 
 
-'''async def admin_panel(message):
-    if message.chat.type == 'private' and message.from_user.id in [1130692453, 1268026433]:
-        markup = types.InlineKeyboardMarkup()
-        stats_button = types.InlineKeyboardButton(text="Стата пользователей", callback_data="user_stats")
-        issue_premium_button = types.InlineKeyboardButton(text="Выдать премиум", callback_data="issue_premium")
-        reset_stats_button = types.InlineKeyboardButton(text="Обнулить статистику", callback_data="reset_stats")
-        revoke_premium_button = types.InlineKeyboardButton(text="Забрать премиум", callback_data="revoke_premium")
-        group_broadcast_button = types.InlineKeyboardButton(text="Рассылка группы", callback_data="group_broadcast")
-        private_msg_broadcast_button = types.InlineKeyboardButton(text="Рассылка ЛС",
-                                                                  callback_data="private_msg_broadcast")
-        markup.add(stats_button, issue_premium_button, reset_stats_button, revoke_premium_button,
-                   group_broadcast_button, private_msg_broadcast_button)
-        await bot.send_message(message.chat.id, "Админ панель:", reply_markup=markup)
-    else:
-        await bot.send_message(message.chat.id, "У вас нет доступа к этой команде.")
-
-
-user_state = {}
-user_data = {}
-
-
-@bot.message_handler(
-    func=lambda message: message.text and user_state.get(message.from_user.id) in [
-        'awaiting_user_id_for_premium',
-        'awaiting_user_id_for_reset',
-        'awaiting_user_id_for_revoke',
-        'awaiting_broadcast_message_to_groups',
-        'awaiting_broadcast_message_to_users'
-    ]
-)
-async def handle_user_input(message):
-    user_id = message.from_user.id
-    state = user_state[user_id]
-    input_text = message.text.strip()
-
-    if state == 'awaiting_user_id_for_premium':
-        await activate_premium(input_text)
-        await bot.send_message(message.chat.id, "Премиум выдан.")
-        del user_state[user_id]
-
-    elif state == 'awaiting_user_id_for_reset':
-        with open('komaru_user_cards.json', 'r+') as file:
-            data = json.load(file)
-            if input_text in data:
-                del data[input_text]
-                file.seek(0)
-                json.dump(data, file, indent=4)
-                file.truncate()
-        await bot.send_message(message.chat.id, "Статистика пользователя обнулена.")
-        del user_state[user_id]
-
-    elif state == 'awaiting_user_id_for_revoke':
-        with open('premium_users.json', 'r+') as file:
-            data = json.load(file)
-            if input_text in data:
-                del data[input_text]
-                file.seek(0)
-                json.dump(data, file, indent=4)
-                file.truncate()
-        await bot.send_message(message.chat.id, "Премиум статус пользователя забран.")
-        del user_state[user_id]
-
-    elif state == 'awaiting_broadcast_message_to_groups':
-        try:
-            async with aiofiles.open("user_group_data.json", "r") as file:
-                data = await file.read()
-                groups = json.loads(data)['groups']
-                for group_id in groups:
-                    await bot.send_message(group_id, input_text)
-            await bot.send_message(message.chat.id, "Сообщение успешно разослано по группам.")
-        except Exception as e:
-            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
-        del user_state[user_id]
-
-    elif state == 'awaiting_broadcast_message_to_users':
-        try:
-            async with aiofiles.open("user_group_data.json", "r") as file:
-                data = await file.read()
-                users = json.loads(data)['users']
-                for user_id in users:
-                    await bot.send_message(user_id, input_text)
-            await bot.send_message(message.chat.id, "Сообщение успешно разослано пользователям в ЛС.")
-        except Exception as e:
-            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
-        del user_state[user_id]
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('issue_premium'))
-async def issue_premium(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        user_state[call.from_user.id] = 'awaiting_user_id_for_premium'
-        await bot.send_message(call.message.chat.id, "Введите ID пользователя для выдачи премиума:")
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('reset_stats'))
-async def reset_stats(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        user_state[call.from_user.id] = 'awaiting_user_id_for_reset'
-        await bot.send_message(call.message.chat.id, "Введите ID пользователя для обнуления статистики:")
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('revoke_premium'))
-async def revoke_premium(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        user_state[call.from_user.id] = 'awaiting_user_id_for_revoke'
-        await bot.send_message(call.message.chat.id, "Введите ID пользователя для удаления премиума:")
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('user_stats'))
-async def send_user_stats(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        with open('user_group_data.json', 'rb') as file:
-            await bot.send_document(call.message.chat.id, file)
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == 'group_broadcast')
-async def initiate_group_broadcast(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        user_state[call.from_user.id] = 'awaiting_broadcast_message_to_groups'
-        await bot.send_message(call.message.chat.id, "Введите сообщение для рассылки по группам:")
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == 'private_msg_broadcast')
-async def initiate_private_msg_broadcast(call):
-    if call.from_user.id in [1130692453, 1268026433]:
-        user_state[call.from_user.id] = 'awaiting_broadcast_message_to_users'
-        await bot.send_message(call.message.chat.id, "Введите сообщение для рассылки в ЛС:")
-    else:
-        await bot.answer_callback_query(call.id, "Не ваша кнопка.", show_alert=True)
-
-
-@bot.message_handler(
-    func=lambda message: user_state.get(message.from_user.id) in ['awaiting_broadcast_message_to_groups',
-                                                                  'awaiting_broadcast_message_to_users'])
-async def process_broadcast_message(message):
-    broadcast_message = message.text
-    if user_state[message.from_user.id] == 'awaiting_broadcast_message_to_groups':
-        try:
-            async with aiofiles.open("user_group_data.json", "r") as file:
-                data = await file.read()
-                groups = json.loads(data)['groups']
-                for group_id in groups:
-                    await bot.send_message(group_id, broadcast_message)
-            await bot.send_message(message.chat.id, "Сообщение успешно разослано по группам.")
-        except Exception as e:
-            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
-    elif user_state[message.from_user.id] == 'awaiting_broadcast_message_to_users':
-        try:
-            async with aiofiles.open("user_group_data.json", "r") as file:
-                data = await file.read()
-                users = json.loads(data)['users']
-                for user_id in users:
-                    await bot.send_message(user_id, broadcast_message)
-            await bot.send_message(message.chat.id, "Сообщение успешно разослано пользователям в ЛС.")
-        except Exception as e:
-            await bot.send_message(message.chat.id, f"Ошибка при рассылке: {str(e)}")
-    del user_state[message.from_user.id]'''
-
 async def changeNickname(message):
     userId = message.from_user.id
     data = await load_data_cards()
     first_name = message.from_user.first_name
     premium_status, _ = await check_and_update_premium_status(str(userId))
-    user_data = data.get(str(userId), {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
+    user_data = data.get(str(userId),
+                         {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': first_name, 'card_count': 0})
     text = registr(message.text)
     parts = text.split('сменить ник', 1)
-    
+
     if len(parts) > 1 and parts[1].strip():
         new_nick = parts[1].strip()
         if len(new_nick) > 64:
             await bot.send_message(message.chat.id, "Никнейм не может быть длиннее 64 символов.")
             return
         if not premium_status and any(emoji.is_emoji(char) for char in new_nick):
-            await bot.send_message(message.chat.id, "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
+            await bot.send_message(message.chat.id,
+                                   "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
             return
         user_data['nickname'] = new_nick
         data[str(userId)] = user_data
@@ -696,7 +826,9 @@ async def changeNickname(message):
     else:
         await bot.send_message(message.chat.id, "Никнейм не может быть пустым. Укажите значение после команды.")
 
+
 last_request_time = {}
+
 
 async def last_time_usage(user_id):
     current_time = time.time()
@@ -706,9 +838,72 @@ async def last_time_usage(user_id):
     return True
 
 
+@bot.message_handler(commands=['admin_panel'])
+async def admin_panel(message):
+    if message.from_user.id not in [1130692453, 1268026433]:
+        await bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        return
+
+    try:
+        parts = message.text.split(' ', 3)
+        if len(parts) < 4:
+            await bot.reply_to(message,
+                               "Неверный формат команды. Используйте: /admin_panel <action> <лс/группа> <текст> <кнопка с ссылкой[ссылка]>")
+            return
+
+        action = parts[1]
+        target = parts[2]
+        rest = parts[3]
+
+        text_start = rest.find('<') + 1
+        text_end = rest.find('>')
+        if text_start == 0 or text_end == -1:
+            await bot.reply_to(message, "Неверный формат текста. Используйте: <текст>")
+            return
+
+        text = rest[text_start:text_end]
+        button_text = None
+        button_url = None
+
+        button_start = rest.find('<', text_end + 1)
+        button_end = rest.find('>', button_start + 1)
+        if button_start != -1 and button_end != -1:
+            button_text_url = rest[button_start + 1:button_end]
+            button_text, button_url = button_text_url.split('[')
+            button_url = button_url.strip(']')
+
+        async with aiofiles.open("user_group_data.json", "r") as file:
+            data = json.loads(await file.read())
+
+        if target == 'группа':
+            targets = data.get('groups', {}).keys()
+        elif target == 'лс':
+            targets = data.get('users', {}).keys()
+        else:
+            await bot.reply_to(message, "Неверный тип получателя. Используйте 'группа' или 'лс'.")
+            return
+
+        keyboard = None
+        if button_text and button_url:
+            keyboard = types.InlineKeyboardMarkup()
+            button = types.InlineKeyboardButton(text=button_text, url=button_url)
+            keyboard.add(button)
+
+        for chat_id in targets:
+            try:
+                await bot.send_message(chat_id, text, reply_markup=keyboard)
+            except Exception as e:
+                logging.error(f"Error sending message to {chat_id}: {e}")
+
+        await bot.reply_to(message, f"Сообщение успешно разослано по {target}.")
+
+    except Exception as e:
+        await bot.reply_to(message, f"Произошла ошибка: {e}")
+
+
 @bot.message_handler(func=lambda message: True)
 async def handle_text(message):
-    try: 
+    try:
         text = registr(message.text)
         if text in ["комару", "получить карту", "камар", "камару"]:
             if await last_time_usage(message.from_user.id):
@@ -722,13 +917,12 @@ async def handle_text(message):
         elif text in ["/help", "/help@komarucardsbot"]:
             if await last_time_usage(message.from_user.id):
                 await help(message)
-        elif text in ['/admin_panel', '/admin_panel@komarucardsbot', 'админ панель']:
-            if await last_time_usage(message.from_user.id):
-                await admin_panel(message)
         elif text.startswith('сменить ник'):
             if await last_time_usage(message.from_user.id):
                 await changeNickname(message)
-            
+        elif text.startswith('промо'):
+            if await last_time_usage(message.from_user.id):
+                await promo(message)
     except Exception as e:
         await bot.send_message(message.chat.id, "Временная ошибка в обработке, повторите позже.")
         await bot.send_message(1130692453,
