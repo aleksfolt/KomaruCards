@@ -55,6 +55,18 @@
       "points": "1000"
     },
     {
+      "rarity": "Редкая",
+      "name": "Испуганная Камара",
+      "photo": "https://tinypic.host/images/2024/06/29/image78043b5dc2dfcf6c.png",
+      "points": "1000"
+    },
+    {
+      "rarity": "Редкая",
+      "name": "Комару мяукает",
+      "photo": "https://tinypic.host/images/2024/06/29/image80c2201a12e8a208.png",
+      "points": "1000"
+    },
+    {
       "rarity": "Сверхредкая",
       "name": "Комару Subway Surfers",
       "photo": "https://tinypic.host/images/2024/06/13/download.jpg",
@@ -106,6 +118,18 @@
       "rarity": "Сверхредкая",
       "name": "Комару в отдыхает на снежке",
       "photo": "https://tinypic.host/images/2024/06/24/photo_2024-06-24_21-25-22-transformed.jpeg",
+      "points": "3000"
+    },
+    {
+      "rarity": "Сверхредкая",
+      "name": "Комару в лесу",
+      "photo": "https://tinypic.host/images/2024/06/29/1000071525.jpg",
+      "points": "3000"
+    },
+    {
+      "rarity": "Сверхредкая",
+      "name": "Комару отдыхает у себя дома",
+      "photo": "https://tinypic.host/images/2024/06/29/image9c4c47f9f9415f6c.png",
       "points": "3000"
     },
     {
@@ -163,6 +187,18 @@
       "points": "5000"
     },
     {
+      "rarity": "Мифическая",
+      "name": "Комару в разрушенном городе",
+      "photo": "https://tinypic.host/images/2024/06/29/1000071523.jpg",
+      "points": "5000"
+    },
+    {
+      "rarity": "Мифическая",
+      "name": "Комару назад в будущее",
+      "photo": "https://tinypic.host/images/2024/06/29/1000071522.jpg",
+      "points": "5000"
+    },
+    {
       "rarity": "Легендарная",
       "name": "Киберпанк Комару",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_1.jpg",
@@ -214,6 +250,18 @@
       "rarity": "Легендарная",
       "name": "Комару баскетболистка",
       "photo": "https://tinypic.host/images/2024/06/24/image2c79b7f5f1c08d35.png",
+      "points": "10000"
+    },
+    {
+      "rarity": "Легендарная",
+      "name": "Комару в игре",
+      "photo": "https://tinypic.host/images/2024/06/29/1000071514.jpg",
+      "points": "10000"
+    },
+    {
+      "rarity": "Легендарная",
+      "name": "Комару в поезде",
+      "photo": "https://tinypic.host/images/2024/06/29/1000071526.jpg",
       "points": "10000"
     }
   ]
