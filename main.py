@@ -296,7 +296,7 @@ async def show_knock_cards(call):
         rarities = {cat['rarity'] for cat in cats if cat['name'] in cats_owned_by_user}
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         for rarity in rarities:
-            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=f'show_{rarity}_{unique_id}'))
+            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=f'show_{rarity}'))
         try:
             await bot.send_message(call.from_user.id,
                                    f"У вас собрано {collected_cards} из {total_cards} возможных\nВыберите редкость:",
@@ -319,23 +319,17 @@ async def show_knock_cards(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('show_'))
 async def show_cards(call):
     try:
-        parts = call.data.split('_')
-        rarity = parts[1]
-        unique_id = parts[-1]
-        if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
-            await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
-            return
+        rarity = call.data[len('show_'):]
         user_id = str(call.from_user.id)
         user_nickname = call.from_user.first_name
         data = await load_data_cards()
-        user_data = data.get(user_id,
-                             {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
+        user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
         rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
 
         if rarity_cards:
             first_card_index = 0
-            await send_initial_card_with_navigation(call.message.chat.id, user_id, rarity, rarity_cards,
-                                                    first_card_index, unique_id)
+            if first_card_index < len(rarity_cards):
+                await send_initial_card_with_navigation(call.message.chat.id, user_id, rarity, rarity_cards, first_card_index)
         else:
             await bot.send_message(call.message.chat.id, f"У вас нет карточек редкости {rarity}")
     except Exception as e:
@@ -343,58 +337,61 @@ async def show_cards(call):
         await bot.send_message(call.message.chat.id, "Произошла ошибка при отображении карточек.")
 
 
-async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_cards, card_index, unique_id):
-    card = rarity_cards[card_index]
-    photo_data = card['photo']
-    caption = f"{card['name']}\nРедкость: {card['rarity']}"
-    if 'points' in card:
-        caption += f"\nОчки: {card['points']}"
+async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_cards, card_index):
+    if card_index < len(rarity_cards):
+        card = rarity_cards[card_index]
+        photo_data = card['photo']
+        caption = f"{card['name']}\nРедкость: {card['rarity']}"
+        if 'points' in card:
+            caption += f"\nОчки: {card['points']}"
 
-    keyboard = types.InlineKeyboardMarkup(row_width=3)
-    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}_{unique_id}')
-    keyboard.add(love_button)
-    if card_index > 0:
-        prev_button = types.InlineKeyboardButton(text="Назад",
-                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}_{unique_id}')
-        keyboard.add(prev_button)
-    if card_index < len(rarity_cards) - 1:
-        next_button = types.InlineKeyboardButton(text="Вперед",
-                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}_{unique_id}')
-        keyboard.add(next_button)
+        keyboard = types.InlineKeyboardMarkup(row_width=3)
+        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+        keyboard.add(love_button)
+        if card_index > 0:
+            prev_button = types.InlineKeyboardButton(text="Назад",
+                                                     callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+            keyboard.add(prev_button)
+        if card_index < len(rarity_cards) - 1:
+            next_button = types.InlineKeyboardButton(text="Вперед",
+                                                     callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+            keyboard.add(next_button)
 
-    await bot.send_photo(chat_id, photo_data, caption=caption, reply_markup=keyboard)
+        await bot.send_photo(chat_id, photo_data, caption=caption, reply_markup=keyboard)
+    else:
+        logging.error(f"Card index {card_index} out of range for rarity cards")
 
 
-async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity_cards, card_index, unique_id):
-    card = rarity_cards[card_index]
-    photo_data = card['photo']
-    caption = f"{card['name']}\nРедкость: {card['rarity']}"
-    if 'points' in card:
-        caption += f"\nОчки: {card['points']}"
+async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity_cards, card_index):
+    if card_index < len(rarity_cards):
+        card = rarity_cards[card_index]
+        photo_data = card['photo']
+        caption = f"{card['name']}\nРедкость: {card['rarity']}"
+        if 'points' in card:
+            caption += f"\nОчки: {card['points']}"
 
-    keyboard = types.InlineKeyboardMarkup(row_width=3)
-    love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}_{unique_id}')
-    keyboard.add(love_button)
-    if card_index > 0:
-        prev_button = types.InlineKeyboardButton(text="Назад",
-                                                 callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}_{unique_id}')
-        keyboard.add(prev_button)
-    if card_index < len(rarity_cards) - 1:
-        next_button = types.InlineKeyboardButton(text="Вперед",
-                                                 callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}_{unique_id}')
-        keyboard.add(next_button)
+        keyboard = types.InlineKeyboardMarkup(row_width=3)
+        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+        keyboard.add(love_button)
+        if card_index > 0:
+            prev_button = types.InlineKeyboardButton(text="Назад",
+                                                     callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+            keyboard.add(prev_button)
+        if card_index < len(rarity_cards) - 1:
+            next_button = types.InlineKeyboardButton(text="Вперед",
+                                                     callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+            keyboard.add(next_button)
 
-    media = types.InputMediaPhoto(photo_data, caption=caption)
-    await bot.edit_message_media(media, chat_id=chat_id, message_id=message_id, reply_markup=keyboard)
+        media = types.InputMediaPhoto(photo_data, caption=caption)
+        await bot.edit_message_media(media, chat_id=chat_id, message_id=message_id, reply_markup=keyboard)
+    else:
+        logging.error(f"Card index {card_index} out of range for rarity cards")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('love_'))
 async def handle_love_card(call):
     parts = call.data.split('_')
-    user_id, card_name, unique_id = parts[1], parts[2], parts[-1]
-    if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
-        await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
-        return
+    user_id, card_name = parts[1], parts[2]
     data = await load_data_cards()
     user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': '', 'love_card': ''})
     user_data['love_card'] = card_name
@@ -411,11 +408,6 @@ async def navigate_cards(call):
         direction = parts[2]
         new_index = int(parts[3])
         rarity = parts[4]
-        unique_id = parts[-1]
-
-        if unique_id not in user_button or user_button[unique_id] != call.from_user.id:
-            await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
-            return
 
         data = await load_data_cards()
         user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': ''})
@@ -424,8 +416,7 @@ async def navigate_cards(call):
         logging.info(f"Navigating to card {new_index} of {len(rarity_cards) - 1}")
 
         if 0 <= new_index < len(rarity_cards):
-            await send_card_with_navigation(call.message.chat.id, call.message.message_id, user_id, rarity,
-                                            rarity_cards, new_index, unique_id)
+            await send_card_with_navigation(call.message.chat.id, call.message.message_id, user_id, rarity, rarity_cards, new_index)
         else:
             await bot.send_message(call.message.chat.id, "Индекс карточки вне диапазона.")
     except Exception as e:
