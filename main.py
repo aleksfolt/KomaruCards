@@ -151,6 +151,9 @@ async def komaru_cards_function(message):
     if 'card_count' not in user_data:
         user_data['card_count'] = 0
 
+    if 'all_points' not in user_data:
+        user_data['all_points'] = 0
+
     user_data['points'] = int(user_data['points'])
     time_since_last_usage = time.time() - user_data['last_usage']
 
