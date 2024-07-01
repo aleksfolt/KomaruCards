@@ -67,6 +67,12 @@
       "points": "1000"
     },
     {
+      "rarity": "Редкая",
+      "name": "Просто Камара",
+      "photo": "https://tinypic.host/images/2024/07/01/imagef796ea6c3c5da831.png",
+      "points": "1000"
+    },
+    {
       "rarity": "Сверхредкая",
       "name": "Комару Subway Surfers",
       "photo": "https://tinypic.host/images/2024/06/13/download.jpg",
@@ -130,6 +136,12 @@
       "rarity": "Сверхредкая",
       "name": "Комару отдыхает у себя дома",
       "photo": "https://tinypic.host/images/2024/06/29/image9c4c47f9f9415f6c.png",
+      "points": "3000"
+    },
+    {
+      "rarity": "Сверхредкая",
+      "name": "Комару из матрицы",
+      "photo": "https://tinypic.host/images/2024/07/01/image6013d6574a2325c2.png",
       "points": "3000"
     },
     {
@@ -199,6 +211,12 @@
       "points": "5000"
     },
     {
+      "rarity": "Мифическая",
+      "name": "Комару на пляже",
+      "photo": "https://tinypic.host/images/2024/07/01/image7e035ff0b65db088.png",
+      "points": "5000"
+    },
+    {
       "rarity": "Легендарная",
       "name": "Киберпанк Комару",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_1.jpg",
@@ -262,6 +280,12 @@
       "rarity": "Легендарная",
       "name": "Комару в поезде",
       "photo": "https://tinypic.host/images/2024/06/29/1000071526.jpg",
+      "points": "10000"
+    },
+    {
+      "rarity": "Легендарная",
+      "name": "Комару в библиотеке",
+      "photo": "https://tinypic.host/images/2024/07/01/photo_2024-07-01_23-44-35-transformed.jpeg",
       "points": "10000"
     }
   ]
