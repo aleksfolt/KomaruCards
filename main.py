@@ -15,8 +15,8 @@ from aiocryptopay import AioCryptoPay, Networks
 import aiofiles
 import emoji
 
-crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
-bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
+crypto = AioCryptoPay(token='13281:AAiDtQJJjIma4uNCKhXuDPQtYw6TVkkVyb6', network=Networks.TEST_NET)
+bot = AsyncTeleBot("7231457326:AAHTZMT6fBZ5eTYKcldNAq0typFz9j_aAqU")
 
 user_button = {}
 button_ids = {}
@@ -296,7 +296,8 @@ async def show_knock_cards(call):
         rarities = {cat['rarity'] for cat in cats if cat['name'] in cats_owned_by_user}
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         for rarity in rarities:
-            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=f'show_{rarity}'))
+            callback_data = f'show_{rarity[:15]}'  # Truncate to 15 characters
+            keyboard.add(types.InlineKeyboardButton(text=rarity, callback_data=callback_data))
         try:
             await bot.send_message(call.from_user.id,
                                    f"У вас собрано {collected_cards} из {total_cards} возможных\nВыберите редкость:",
@@ -324,7 +325,7 @@ async def show_cards(call):
         user_nickname = call.from_user.first_name
         data = await load_data_cards()
         user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0})
-        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
+        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'].startswith(rarity)]
 
         if rarity_cards:
             first_card_index = 0
@@ -346,15 +347,15 @@ async def send_initial_card_with_navigation(chat_id, user_id, rarity, rarity_car
             caption += f"\nОчки: {card['points']}"
 
         keyboard = types.InlineKeyboardMarkup(row_width=3)
-        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id[:15]}_{card["id"]}')
         keyboard.add(love_button)
         if card_index > 0:
             prev_button = types.InlineKeyboardButton(text="Назад",
-                                                     callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+                                                     callback_data=f'navigate_{user_id[:15]}_prev_{card_index - 1}_{rarity[:15]}')
             keyboard.add(prev_button)
         if card_index < len(rarity_cards) - 1:
             next_button = types.InlineKeyboardButton(text="Вперед",
-                                                     callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+                                                     callback_data=f'navigate_{user_id[:15]}_next_{card_index + 1}_{rarity[:15]}')
             keyboard.add(next_button)
 
         await bot.send_photo(chat_id, photo_data, caption=caption, reply_markup=keyboard)
@@ -371,15 +372,15 @@ async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity
             caption += f"\nОчки: {card['points']}"
 
         keyboard = types.InlineKeyboardMarkup(row_width=3)
-        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id}_{card["name"]}')
+        love_button = types.InlineKeyboardButton(text="❤️ Love", callback_data=f'love_{user_id[:15]}_{card["id"]}')
         keyboard.add(love_button)
         if card_index > 0:
             prev_button = types.InlineKeyboardButton(text="Назад",
-                                                     callback_data=f'navigate_{user_id}_prev_{card_index - 1}_{rarity}')
+                                                     callback_data=f'navigate_{user_id[:15]}_prev_{card_index - 1}_{rarity[:15]}')
             keyboard.add(prev_button)
         if card_index < len(rarity_cards) - 1:
             next_button = types.InlineKeyboardButton(text="Вперед",
-                                                     callback_data=f'navigate_{user_id}_next_{card_index + 1}_{rarity}')
+                                                     callback_data=f'navigate_{user_id[:15]}_next_{card_index + 1}_{rarity[:15]}')
             keyboard.add(next_button)
 
         media = types.InputMediaPhoto(photo_data, caption=caption)
@@ -391,13 +392,17 @@ async def send_card_with_navigation(chat_id, message_id, user_id, rarity, rarity
 @bot.callback_query_handler(func=lambda call: call.data.startswith('love_'))
 async def handle_love_card(call):
     parts = call.data.split('_')
-    user_id, card_name = parts[1], parts[2]
+    user_id, card_id = parts[1], parts[2]
     data = await load_data_cards()
     user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': '', 'love_card': ''})
-    user_data['love_card'] = card_name
-    data[user_id] = user_data
-    await save_data(data)
-    await bot.answer_callback_query(call.id, f"Карточка '{card_name}' теперь ваша любимая!")
+    card_name = next((card['name'] for card in cats if card['id'] == card_id), None)
+    if card_name:
+        user_data['love_card'] = card_name
+        data[user_id] = user_data
+        await save_data(data)
+        await bot.answer_callback_query(call.id, f"Карточка '{card_name}' теперь ваша любимая!")
+    else:
+        await bot.answer_callback_query(call.id, "Не найдено карточек с таким ID.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('navigate_'))
@@ -411,7 +416,7 @@ async def navigate_cards(call):
 
         data = await load_data_cards()
         user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': ''})
-        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'] == rarity]
+        rarity_cards = [cat for cat in cats if cat['name'] in user_data['cats'] and cat['rarity'].startswith(rarity)]
 
         logging.info(f"Navigating to card {new_index} of {len(rarity_cards) - 1}")
 
@@ -822,13 +827,24 @@ async def changeNickname(message):
 
     if len(parts) > 1 and parts[1].strip():
         new_nick = parts[1].strip()
+
         if len(new_nick) > 64:
             await bot.send_message(message.chat.id, "Никнейм не может быть длиннее 64 символов.")
             return
+
         if not premium_status and any(emoji.is_emoji(char) for char in new_nick):
             await bot.send_message(message.chat.id,
                                    "Вы не можете использовать эмодзи в нике. Приобретите премиум в профиле!")
             return
+
+        if any(entity.type == 'url' for entity in message.entities or []):
+            await bot.send_message(message.chat.id, "Никнейм не может содержать ссылки.")
+            return
+
+        if '@' in new_nick:
+            await bot.send_message(message.chat.id, "Никнейм не может содержать юзернеймы.")
+            return
+
         user_data['nickname'] = new_nick
         data[str(user_id)] = user_data
         await save_data(data)
