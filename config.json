@@ -4,289 +4,337 @@
       "rarity": "Редкая",
       "name": "Комару - кукуруза",
       "photo": "https://tinypic.host/images/2024/06/24/image506efca7bd3e4a90.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "1"
     },
     {
       "rarity": "Редкая",
       "name": "Сладкая комару",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_rare_2.jpg",
-      "points": "1000"
+      "points": "1000",
+      "id": "2"
     },
     {
       "rarity": "Редкая",
       "name": "Комару сидящая на коле",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_rare_3.jpg",
-      "points": "1000"
+      "points": "1000",
+      "id": "3"
     },
     {
       "rarity": "Редкая",
       "name": "Комару с уткой на голове",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_rare_4.jpg",
-      "points": "1000"
+      "points": "1000",
+      "id": "4"
     },
     {
       "rarity": "Редкая",
       "name": "Комару устав",
       "photo": "https://tinypic.host/images/2024/06/14/komaru_rare_5.jpg",
-      "points": "1000"
+      "points": "1000",
+      "id": "5"
     },
     {
       "rarity": "Редкая",
       "name": "Комару с бантиком",
       "photo": "https://tinypic.host/images/2024/06/14/image.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "6"
     },
     {
       "rarity": "Редкая",
       "name": "Комару на лестнице",
       "photo": "https://tinypic.host/images/2024/06/14/imageb6a888b62d061c04.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "7"
     },
     {
       "rarity": "Редкая",
       "name": "Комару вампирша",
       "photo": "https://tinypic.host/images/2024/06/24/image59ed061d43e35b08.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "8"
     },
     {
       "rarity": "Редкая",
       "name": "Комару в домике",
       "photo": "https://tinypic.host/images/2024/06/24/image10062a1b8095f635.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "9"
     },
     {
       "rarity": "Редкая",
       "name": "Испуганная Камара",
       "photo": "https://tinypic.host/images/2024/06/29/image78043b5dc2dfcf6c.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "10"
     },
     {
       "rarity": "Редкая",
       "name": "Комару мяукает",
       "photo": "https://tinypic.host/images/2024/06/29/image80c2201a12e8a208.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "11"
     },
     {
       "rarity": "Редкая",
       "name": "Просто Камара",
       "photo": "https://tinypic.host/images/2024/07/01/imagef796ea6c3c5da831.png",
-      "points": "1000"
+      "points": "1000",
+      "id": "12"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару Subway Surfers",
       "photo": "https://tinypic.host/images/2024/06/13/download.jpg",
-      "points": "3000"
+      "points": "3000",
+      "id": "13"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в лесу",
       "photo": "https://tinypic.host/images/2024/06/13/download2cfc6af40f36a502.jpg",
-      "points": "3000"
+      "points": "3000",
+      "id": "14"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару арбузный барон",
       "photo": "https://tinypic.host/images/2024/06/13/downloadf586e1f769c900f3.jpg",
-      "points": "3000"
+      "points": "3000",
+      "id": "15"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Много комару",
       "photo": "https://tinypic.host/images/2024/06/13/image8d8df33f3f9da4d0.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "16"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару с мандаринчиками",
       "photo": "https://tinypic.host/images/2024/06/13/imagec543adc577eac998.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "17"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в лавандовом поле",
       "photo": "https://tinypic.host/images/2024/06/14/image4beca245cfc6a9ed.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "18"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в техасе",
       "photo": "https://tinypic.host/images/2024/06/14/image559a9c2d89cb0096.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "19"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в лодке",
       "photo": "https://tinypic.host/images/2024/06/24/photo_2024-06-24_21-24-07-transformed.jpeg",
-      "points": "3000"
+      "points": "3000",
+      "id": "20"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в отдыхает на снежке",
       "photo": "https://tinypic.host/images/2024/06/24/photo_2024-06-24_21-25-22-transformed.jpeg",
-      "points": "3000"
+      "points": "3000",
+      "id": "21"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару в лесу",
       "photo": "https://tinypic.host/images/2024/06/29/1000071525.jpg",
-      "points": "3000"
+      "points": "3000",
+      "id": "22"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару отдыхает у себя дома",
       "photo": "https://tinypic.host/images/2024/06/29/image9c4c47f9f9415f6c.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "23"
     },
     {
       "rarity": "Сверхредкая",
       "name": "Комару из матрицы",
       "photo": "https://tinypic.host/images/2024/07/01/image6013d6574a2325c2.png",
-      "points": "3000"
+      "points": "3000",
+      "id": "24"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару зимой",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_mific_1.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "25"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару у портала в ад",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_mific_2.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "26"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару на рыбалке",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_mific_3.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "27"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару в backrooms",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_mific_4.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "28"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару джедай",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_mific_5.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "29"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару в окопе",
       "photo": "https://tinypic.host/images/2024/06/14/image29ca51d48867c334.png",
-      "points": "5000"
+      "points": "5000",
+      "id": "30"
     },
     {
       "rarity": "Мифическая",
       "name": "Удивленная Комару",
       "photo": "https://tinypic.host/images/2024/06/14/image9667ad3287997d1c.png",
-      "points": "5000"
+      "points": "5000",
+      "id": "31"
     },
     {
       "rarity": "Мифическая",
       "name": "Заключенная Комару",
       "photo": "https://tinypic.host/images/2024/06/24/imaged41b443951a2e6f9.png",
-      "points": "5000"
+      "points": "5000",
+      "id": "32"
     },
     {
       "rarity": "Мифическая",
       "name": "Боевая Комару",
       "photo": "https://tinypic.host/images/2024/06/24/image00208043b01e3bbb.png",
-      "points": "5000"
+      "points": "5000",
+      "id": "33"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару в разрушенном городе",
       "photo": "https://tinypic.host/images/2024/06/29/1000071523.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "34"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару назад в будущее",
       "photo": "https://tinypic.host/images/2024/06/29/1000071522.jpg",
-      "points": "5000"
+      "points": "5000",
+      "id": "35"
     },
     {
       "rarity": "Мифическая",
       "name": "Комару на пляже",
       "photo": "https://tinypic.host/images/2024/07/01/image7e035ff0b65db088.png",
-      "points": "5000"
+      "points": "5000",
+      "id": "36"
     },
     {
       "rarity": "Легендарная",
       "name": "Киберпанк Комару",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_1.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "37"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару в пост-апокалипсисе",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_2.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "38"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару чушпанчик",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_3.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "39"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару диктатор",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_4.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "40"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару королева",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_5.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "41"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару самурай",
       "photo": "https://tinypic.host/images/2024/06/13/komaru_lega_6.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "42"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару в школе",
       "photo": "https://tinypic.host/images/2024/06/14/image617cfe390e55eb31.png",
-      "points": "10000"
+      "points": "10000",
+      "id": "43"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару на работе",
       "photo": "https://tinypic.host/images/2024/06/24/imagebc4929a56fd33c5f.png",
-      "points": "10000"
+      "points": "10000",
+      "id": "44"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару баскетболистка",
       "photo": "https://tinypic.host/images/2024/06/24/image2c79b7f5f1c08d35.png",
-      "points": "10000"
+      "points": "10000",
+      "id": "45"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару в игре",
       "photo": "https://tinypic.host/images/2024/06/29/1000071514.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "46"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару в поезде",
       "photo": "https://tinypic.host/images/2024/06/29/1000071526.jpg",
-      "points": "10000"
+      "points": "10000",
+      "id": "47"
     },
     {
       "rarity": "Легендарная",
       "name": "Комару в библиотеке",
       "photo": "https://tinypic.host/images/2024/07/01/photo_2024-07-01_23-44-35-transformed.jpeg",
-      "points": "10000"
+      "points": "10000",
+      "id": "48"
     }
   ]
 }
