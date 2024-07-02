@@ -928,11 +928,11 @@ async def admin_panel(message):
         await bot.reply_to(message, f"Произошла ошибка: {e}")
 
 
+from datetime import datetime
+
 send_files_task = None
 authorized_users = {1268026433, 1130692453}
 receivers = [1130692453, 1268026433]
-
-from datetime import datetime
 
 @bot.message_handler(commands=['send_aiofiles_start'])
 async def start_sending_files(message):
@@ -940,11 +940,11 @@ async def start_sending_files(message):
         global send_files_task
         if send_files_task is None:
             send_files_task = asyncio.create_task(send_files_periodically())
-            await message.reply("Начинаю отправку файлов каждые 10 минут.")
+            await bot.reply_to(message, "Начинаю отправку файлов каждые 10 минут.")
         else:
-            await message.reply("Отправка файлов уже активирована.")
+            await bot.reply_to(message, "Отправка файлов уже активирована.")
     else:
-        await message.reply("У вас нет доступа к этой команде.")
+        await bot.reply_to(message, "У вас нет доступа к этой команде.")
 
 @bot.message_handler(commands=['send_aiofiles_stop'])
 async def stop_sending_files(message):
@@ -953,23 +953,23 @@ async def stop_sending_files(message):
         if send_files_task is not None:
             send_files_task.cancel()
             send_files_task = None
-            await message.reply("Отправка файлов остановлена.")
+            await bot.reply_to(message, "Отправка файлов остановлена.")
         else:
-            await message.reply("Отправка файлов не была активирована.")
+            await bot.reply_to(message, "Отправка файлов не была активирована.")
     else:
-        await message.reply("У вас нет доступа к этой команде.")
+        await bot.reply_to(message, "У вас нет доступа к этой команде.")
 
 async def send_files_periodically():
     try:
-        current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         while True:
+            current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             file_paths = ['premium_users.json', 'komaru_user_cards.json', 'promo.json', 'user_group_data.json']
             for user_id in receivers:
                 for file_path in file_paths:
                     if os.path.exists(file_path):
                         with open(file_path, 'rb') as file:
                             await bot.send_document(user_id, file)
-                            await bot.send_message(message.chat.id, f"Резервная копия: {current_date}")
+                await bot.send_message(user_id, f"Резервная копия: {current_date}")
             await asyncio.sleep(600)
     except asyncio.CancelledError:
         print("Задача по отправке файлов была остановлена.")
