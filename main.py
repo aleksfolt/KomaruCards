@@ -932,7 +932,7 @@ from datetime import datetime
 
 send_files_task = None
 authorized_users = {1268026433, 1130692453}
-receivers = [1130692453, 1268026433]
+receivers = [-1002169656453]
 
 @bot.message_handler(commands=['send_aiofiles_start'])
 async def start_sending_files(message):
