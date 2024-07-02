@@ -45,21 +45,21 @@ responses = [
 ]
 
 
+async def save_data(data):
+    try:
+        async with aiofiles.open("komaru_user_cards.json", 'w') as f:
+            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
+        logging.info("Data successfully saved.")
+    except Exception as e:
+        logging.error(f"Failed to save data: {e}")
+
 async def load_data_cards():
     try:
         async with aiofiles.open("komaru_user_cards.json", 'r') as f:
             return json.loads(await f.read())
     except Exception as e:
-        print(e)
+        logging.error(f"Failed to load data: {e}")
         return {}
-
-
-async def save_data(data):
-    try:
-        async with aiofiles.open("komaru_user_cards.json", 'w') as f:
-            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
-    except Exception as e:
-        print(e)
 
 
 async def get_titul(card_count, user_id):
