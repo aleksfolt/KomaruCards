@@ -18,7 +18,7 @@ import emoji
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
-bot = AsyncTeleBot("205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8")
+bot = AsyncTeleBot("7409912773:AAGLCpIH6TyjhrQzNSedFo7e6USf1RFXF5w")
 
 user_button = {}
 button_ids = {}
