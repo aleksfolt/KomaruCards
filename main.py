@@ -999,6 +999,12 @@ async def handle_text(message):
         elif text.startswith('промо'):
             if await last_time_usage(message.from_user.id):
                 await promo(message)
+        elif text in ["/privacy", "/privacy@komarucardsbot"]:
+            if await last_time_usage(message.from_user.id):
+                keyboard = types.InlineKeyboardMarkup(row_width=2)
+                button_1 = types.InlineKeyboardButton(text="Наше пользовательское соглашение", url="")
+                keyboard.add(button_1)
+                await bot.send_message(message.chat.id, "Мы обрабатываем данные пользователей строго в целях улучшения функционала нашего бота. Гарантируем, что данные пользователя, включая идентификатор пользователя (user ID) и имя (first name), не будут переданы третьим лицам или использованы вне контекста улучшения бота. Наш приоритет — обеспечение безопасности и конфиденциальности информации, которую вы нам доверяете.\n\nДля повышения прозрачности нашей работы, мы также обязуемся предоставлять пользователю доступ к информации о том, какие данные собраны и как они используются. В случае изменения политики использования данных, мы своевременно информируем пользователей через обновления нашего пользовательского соглашения. Мы прилагаем все усилия, чтобы наш сервис был максимально безопасным и удобным для пользователя.", reply_markup=keyboard)
     except Exception as e:
         await bot.send_message(message.chat.id, "Временная ошибка в обработке, повторите позже.")
         await bot.send_message(1130692453,
