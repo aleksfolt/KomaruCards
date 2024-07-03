@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import random
 import time
@@ -16,8 +17,8 @@ import aiofiles
 import emoji
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-crypto = AioCryptoPay(token='205872:AAN4Wj4SoVxVqtjBhfnXqQ1POMYCANkAuV8', network=Networks.MAIN_NET)
-bot = AsyncTeleBot("7409912773:AAH6zKcL5S0hAyLfr5KcUQC0bRgYtmEsxg0")
+crypto = AioCryptoPay(token='13281:AAiDtQJJjIma4uNCKhXuDPQtYw6TVkkVyb6', network=Networks.TEST_NET)
+bot = AsyncTeleBot("7231457326:AAHTZMT6fBZ5eTYKcldNAq0typFz9j_aAqU")
 
 user_button = {}
 button_ids = {}
@@ -1002,7 +1003,7 @@ async def handle_text(message):
         elif text in ["/privacy", "/privacy@komarucardsbot"]:
             if await last_time_usage(message.from_user.id):
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
-                button_1 = types.InlineKeyboardButton(text="Наше пользовательское соглашение", url="")
+                button_1 = types.InlineKeyboardButton(text="Наше пользовательское соглашение", url="https://telegra.ph/Polzovatelskoe-soglashenie-06-17-6")
                 keyboard.add(button_1)
                 await bot.send_message(message.chat.id, "Мы обрабатываем данные пользователей строго в целях улучшения функционала нашего бота. Гарантируем, что данные пользователя, включая идентификатор пользователя (user ID) и имя (first name), не будут переданы третьим лицам или использованы вне контекста улучшения бота. Наш приоритет — обеспечение безопасности и конфиденциальности информации, которую вы нам доверяете.\n\nДля повышения прозрачности нашей работы, мы также обязуемся предоставлять пользователю доступ к информации о том, какие данные собраны и как они используются. В случае изменения политики использования данных, мы своевременно информируем пользователей через обновления нашего пользовательского соглашения. Мы прилагаем все усилия, чтобы наш сервис был максимально безопасным и удобным для пользователя.", reply_markup=keyboard)
     except Exception as e:
