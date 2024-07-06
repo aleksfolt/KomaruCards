@@ -265,5 +265,29 @@
         "activation_limit": 9999,
         "action": "give_prem 5",
         "activation_counts": 260
+    },
+    "запах цианида": {
+        "until": 999999999999,
+        "users": [
+        ],
+        "activation_limit": 1,
+        "action": "give_prem 15",
+        "activation_counts": 0
+    },
+    "струны гитары": {
+        "until": 999999999999,
+        "users": [
+        ],
+        "activation_limit": 1,
+        "action": "give_prem 15",
+        "activation_counts": 0
+    },
+    "завтра": {
+        "until": 999999999999,
+        "users": [
+        ],
+        "activation_limit": 200,
+        "action": "kd",
+        "activation_counts": 0
     }
 }
