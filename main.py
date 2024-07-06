@@ -169,7 +169,7 @@ async def komaru_cards_function(call):
         remaining_minutes = int((remaining_time % 3600) // 60)
         remaining_seconds = int(remaining_time % 60)
         await bot.send_message(call.message.chat.id,
-                               f"Вы осмотрелись, но не увидели рядом Комару. Попробуйте еще раз через {remaining_hours} часов {remaining_minutes} минут {remaining_seconds} секунд.")
+                               f"{call.from_user.first_name}, вы осмотрелись, но не увидели рядом Комару. Попробуйте еще раз через {remaining_hours} часов {remaining_minutes} минут {remaining_seconds} секунд.")
         return
 
     random_number = random.randint(1, 95)
@@ -194,12 +194,12 @@ async def komaru_cards_function(call):
         photo_data = chosen_cat['photo']
         if chosen_cat['name'] in user_data['cats']:
             await bot.send_photo(call.message.chat.id, photo_data,
-                                 caption=f"✨Вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! ✨\nБудут начислены только очки.\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 +{chosen_cat['points']} очков.\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+                                 caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! ✨\nБудут начислены только очки.\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 +{chosen_cat['points']} очков.\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['points'] += int(chosen_cat['points'])
             user_data['all_points'] += int(chosen_cat['points'])
         else:
             await bot.send_photo(call.message.chat.id, photo_data,
-                                 caption=f"✨Вы осмотрелись вокруг и увидели.. {chosen_cat['name']}! ✨\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 Очки: {chosen_cat['points']}\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+                                 caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и увидели.. {chosen_cat['name']}! ✨\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 Очки: {chosen_cat['points']}\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
             user_data['cats'].append(chosen_cat['name'])
             user_data['points'] += int(chosen_cat['points'])
             user_data['all_points'] += int(chosen_cat['points'])
@@ -274,7 +274,8 @@ async def promo(message):
             async with aiofiles.open("promo.json", 'w') as f:
                 await f.write(json.dumps(promo_data, ensure_ascii=False, indent=4))
 
-            await bot.send_message(message.chat.id, f"Промокод успешно активирован!\n\nВы получили премиум на {int(action[1])} дней!")
+            await bot.send_message(message.chat.id,
+                                   f"Промокод успешно активирован!\n\nВы получили премиум на {int(action[1])} дней!")
         elif action[0] == "kd":
             data_komaru = await load_data_cards()
             if str(user_id) in data_komaru:
@@ -295,12 +296,15 @@ async def promo(message):
                     async with aiofiles.open("promo.json", 'w') as f:
                         await f.write(json.dumps(promo_data, ensure_ascii=False, indent=4))
 
-                    await bot.send_message(message.chat.id, "Промокод успешно активирован!\n\nВы полуили обнуление кд на карточку!")
+                    await bot.send_message(message.chat.id,
+                                           "Промокод успешно активирован!\n\nВы полуили обнуление кд на карточку!")
                 else:
-                    await bot.send_message(message.chat.id, "Пожалуйста откройте сначала карточку, а потом заново активируйте промокод.")
+                    await bot.send_message(message.chat.id,
+                                           "Пожалуйста откройте сначала карточку, а потом заново активируйте промокод.")
             else:
                 logging.warning(f"User {user_id} not found in the data.")
-                await bot.send_message(message.chat.id, "Пожалуйста откройте сначала карточку, а потом заново активируйте промокод.")
+                await bot.send_message(message.chat.id,
+                                       "Пожалуйста откройте сначала карточку, а потом заново активируйте промокод.")
 
     except Exception as e:
         logging.error(f"Error processing promo code: {e}")
@@ -469,9 +473,11 @@ async def top_komaru(call):
         await bot.answer_callback_query(call.id, random.choice(responses), show_alert=True)
         return
     keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-    button_1 = telebot.types.InlineKeyboardButton(text="🃏 Топ по карточкам", callback_data=f'top_cards_cards_{unique_id}')
+    button_1 = telebot.types.InlineKeyboardButton(text="🃏 Топ по карточкам",
+                                                  callback_data=f'top_cards_cards_{unique_id}')
     button_2 = telebot.types.InlineKeyboardButton(text="💯 Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
-    button_3 = telebot.types.InlineKeyboardButton(text="⌛️ Топ за все время", callback_data=f'top_cards_all_{unique_id}')
+    button_3 = telebot.types.InlineKeyboardButton(text="⌛️ Топ за все время",
+                                                  callback_data=f'top_cards_all_{unique_id}')
     keyboard.add(button_1, button_2, button_3)
     await bot.send_message(call.message.chat.id, "Топ 10 пользователей по карточкам. Выберите кнопку:",
                            reply_markup=keyboard)
@@ -509,7 +515,8 @@ async def cards_top_callback(call):
             message_text += f"\nВаше место: {user_rank} ({data[user_id]['nickname']}: {len(user_data['cats'])} карточек)"
 
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
-        button_2 = telebot.types.InlineKeyboardButton(text="💯 Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="💯 Топ по очкам",
+                                                      callback_data=f'top_cards_point_{unique_id}')
         button_3 = telebot.types.InlineKeyboardButton(text="⌛️ Топ за все время",
                                                       callback_data=f'top_cards_all_{unique_id}')
         keyboard.add(button_2, button_3)
@@ -556,7 +563,8 @@ async def cards_top_callback(call):
         keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
         button_1 = telebot.types.InlineKeyboardButton(text="🃏 Топ по карточкам",
                                                       callback_data=f'top_cards_cards_{unique_id}')
-        button_2 = telebot.types.InlineKeyboardButton(text="💯 Топ по очкам", callback_data=f'top_cards_point_{unique_id}')
+        button_2 = telebot.types.InlineKeyboardButton(text="💯 Топ по очкам",
+                                                      callback_data=f'top_cards_point_{unique_id}')
         keyboard.add(button_1, button_2)
 
     if not message_text:
@@ -1042,7 +1050,7 @@ async def handle_text(message):
         elif text.startswith('сменить ник'):
             if await last_time_usage(message.from_user.id):
                 await changeNickname(message)
-        elif text.startswith('промо'):
+        elif text.startswith('промо '):
             if await last_time_usage(message.from_user.id):
                 await promo(message)
         elif text in ["/privacy", "/privacy@komarucardsbot"]:
@@ -1087,7 +1095,17 @@ async def send_card_button(message):
         logging.info(f"send_card_button: unique_id={unique_id}, user_id={user_id}")
         button = types.InlineKeyboardButton(text="🐾 Тап 🃏", callback_data=f"get_card_{unique_id}")
         keyboard.add(button)
-        await bot.send_message(message.chat.id, "Нажмите кнопку ниже, чтобы получить карточку:", reply_markup=keyboard)
+        sent_message = await bot.send_message(message.chat.id, "Нажмите кнопку ниже, чтобы получить карточку:",
+                                              reply_markup=keyboard)
+        await asyncio.create_task(delete_message_after_delay(sent_message.chat.id, sent_message.message_id, 35))
+
+
+async def delete_message_after_delay(chat_id, message_id, delay):
+    await asyncio.sleep(delay)
+    try:
+        await bot.delete_message(chat_id, message_id)
+    except Exception as e:
+        pass
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('get_card_'))
