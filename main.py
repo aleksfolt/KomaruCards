@@ -212,7 +212,7 @@ async def komaru_cards_function(call):
 
 async def promo(message):
     try:
-        promo_code = message.text.split()[1]
+        promo_code = message.text[6:]
         async with aiofiles.open("promo.json", 'r') as f:
             promo_data = json.loads(await f.read())
 
@@ -274,7 +274,7 @@ async def promo(message):
             async with aiofiles.open("promo.json", 'w') as f:
                 await f.write(json.dumps(promo_data, ensure_ascii=False, indent=4))
 
-            await bot.send_message(message.chat.id, "Промокод успешно активирован!\n\nВы получили премиум на 5 дней!")
+            await bot.send_message(message.chat.id, f"Промокод успешно активирован!\n\nВы получили премиум на {int(action[1])} дней!")
         elif action[0] == "kd":
             data_komaru = await load_data_cards()
             if str(user_id) in data_komaru:
