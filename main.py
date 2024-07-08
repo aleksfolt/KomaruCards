@@ -143,71 +143,72 @@ async def user_profile(message):
 
 
 async def komaru_cards_function(call):
-    user_id = str(call.from_user.id)
-    user_nickname = call.from_user.first_name
-    await register_user_and_group_async(call.message)
-
-    data = await load_data_cards()
-    user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0,
-                                   'all_points': 0})
-
-    if 'card_count' not in user_data:
-        user_data['card_count'] = 0
-
-    if 'all_points' not in user_data:
-        user_data['all_points'] = 0
-
-    user_data['points'] = int(user_data['points'])
-    time_since_last_usage = time.time() - user_data['last_usage']
-
-    premium_status, _ = await check_and_update_premium_status(user_id)
-    wait_time = 14400 if not premium_status else 10800
-
-    if time_since_last_usage < wait_time:
-        remaining_time = wait_time - time_since_last_usage
-        remaining_hours = int(remaining_time // 3600)
-        remaining_minutes = int((remaining_time % 3600) // 60)
-        remaining_seconds = int(remaining_time % 60)
-        await bot.send_message(call.message.chat.id,
-                               f"{call.from_user.first_name}, вы осмотрелись, но не увидели рядом Комару. Попробуйте еще раз через {remaining_hours} часов {remaining_minutes} минут {remaining_seconds} секунд.")
-        return
-
-    random_number = random.randint(1, 95)
-    if premium_status:
-        if 0 <= random_number <= 19:
-            eligible_cats = [cat for cat in cats if cat["rarity"] == "Легендарная"]
-        elif 20 <= random_number <= 34:
-            eligible_cats = [cat for cat in cats if cat["rarity"] == "Мифическая"]
-    else:
-        if 0 <= random_number <= 14:
-            eligible_cats = [cat for cat in cats if cat["rarity"] == "Легендарная"]
-        elif 15 <= random_number <= 29:
-            eligible_cats = [cat for cat in cats if cat["rarity"] == "Мифическая"]
-
-    if 30 <= random_number <= 49:
-        eligible_cats = [cat for cat in cats if cat["rarity"] == "Сверхредкая"]
-    elif 50 <= random_number <= 95:
-        eligible_cats = [cat for cat in cats if cat["rarity"] == "Редкая"]
-
-    if eligible_cats:
-        chosen_cat = random.choice(eligible_cats)
-        photo_data = chosen_cat['photo']
-        if chosen_cat['name'] in user_data['cats']:
-            await bot.send_photo(call.message.chat.id, photo_data,
-                                 caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! ✨\nБудут начислены только очки.\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 +{chosen_cat['points']} очков.\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
-            user_data['points'] += int(chosen_cat['points'])
-            user_data['all_points'] += int(chosen_cat['points'])
+    if await last_time_usage(call.from_user.id):
+        user_id = str(call.from_user.id)
+        user_nickname = call.from_user.first_name
+        await register_user_and_group_async(call.message)
+    
+        data = await load_data_cards()
+        user_data = data.get(user_id, {'cats': [], 'last_usage': 0, 'points': 0, 'nickname': user_nickname, 'card_count': 0,
+                                       'all_points': 0})
+    
+        if 'card_count' not in user_data:
+            user_data['card_count'] = 0
+    
+        if 'all_points' not in user_data:
+            user_data['all_points'] = 0
+    
+        user_data['points'] = int(user_data['points'])
+        time_since_last_usage = time.time() - user_data['last_usage']
+    
+        premium_status, _ = await check_and_update_premium_status(user_id)
+        wait_time = 14400 if not premium_status else 10800
+    
+        if time_since_last_usage < wait_time:
+            remaining_time = wait_time - time_since_last_usage
+            remaining_hours = int(remaining_time // 3600)
+            remaining_minutes = int((remaining_time % 3600) // 60)
+            remaining_seconds = int(remaining_time % 60)
+            await bot.send_message(call.message.chat.id,
+                                   f"{call.from_user.first_name}, вы осмотрелись, но не увидели рядом Комару. Попробуйте еще раз через {remaining_hours} часов {remaining_minutes} минут {remaining_seconds} секунд.")
+            return
+    
+        random_number = random.randint(1, 95)
+        if premium_status:
+            if 0 <= random_number <= 19:
+                eligible_cats = [cat for cat in cats if cat["rarity"] == "Легендарная"]
+            elif 20 <= random_number <= 34:
+                eligible_cats = [cat for cat in cats if cat["rarity"] == "Мифическая"]
         else:
-            await bot.send_photo(call.message.chat.id, photo_data,
-                                 caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и увидели.. {chosen_cat['name']}! ✨\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 Очки: {chosen_cat['points']}\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
-            user_data['cats'].append(chosen_cat['name'])
-            user_data['points'] += int(chosen_cat['points'])
-            user_data['all_points'] += int(chosen_cat['points'])
-            user_data['card_count'] += 1
-        user_data['last_usage'] = time.time()
-        data[user_id] = user_data
-        await save_data(data)
-        await bot.delete_message(call.message.chat.id, call.message.message_id)
+            if 0 <= random_number <= 14:
+                eligible_cats = [cat for cat in cats if cat["rarity"] == "Легендарная"]
+            elif 15 <= random_number <= 29:
+                eligible_cats = [cat for cat in cats if cat["rarity"] == "Мифическая"]
+    
+        if 30 <= random_number <= 49:
+            eligible_cats = [cat for cat in cats if cat["rarity"] == "Сверхредкая"]
+        elif 50 <= random_number <= 95:
+            eligible_cats = [cat for cat in cats if cat["rarity"] == "Редкая"]
+    
+        if eligible_cats:
+            chosen_cat = random.choice(eligible_cats)
+            photo_data = chosen_cat['photo']
+            if chosen_cat['name'] in user_data['cats']:
+                await bot.send_photo(call.message.chat.id, photo_data,
+                                     caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и снова увидели {chosen_cat['name']}! ✨\nБудут начислены только очки.\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 +{chosen_cat['points']} очков.\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+                user_data['points'] += int(chosen_cat['points'])
+                user_data['all_points'] += int(chosen_cat['points'])
+            else:
+                await bot.send_photo(call.message.chat.id, photo_data,
+                                     caption=f"✨{call.from_user.first_name}, вы осмотрелись вокруг и увидели.. {chosen_cat['name']}! ✨\n\n🎲 Редкость: {chosen_cat['rarity']}\n💯 Очки: {chosen_cat['points']}\n🌟 Всего поинтов: {user_data['points'] + int(chosen_cat['points'])}")
+                user_data['cats'].append(chosen_cat['name'])
+                user_data['points'] += int(chosen_cat['points'])
+                user_data['all_points'] += int(chosen_cat['points'])
+                user_data['card_count'] += 1
+            user_data['last_usage'] = time.time()
+            data[user_id] = user_data
+            await save_data(data)
+            await bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 async def promo(message):
